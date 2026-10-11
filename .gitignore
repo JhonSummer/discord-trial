@@ -1,0 +1,5 @@
+*.dmg
+.env
+.env.*
+*.pem
+*.key
