@@ -1,0 +1,5 @@
+ble_profile,codec,nodes,edges,avg_hops_at_bp,max_concurrent_calls,p95_ms_at_bp,loss_pct_at_bp
+ble_classic_37.5k,lyra_v2_9.2k,24,118,2.8,10,99.8,0.34
+ble_classic_37.5k,lyra_v2_3.2k,24,118,2.8,25,95.7,0.31
+ble5_250k,lyra_v2_9.2k,24,118,2.25,60,61.7,0.26
+ble5_250k,lyra_v2_3.2k,24,118,2.25,60,60.7,0.26

@@ -5,13 +5,16 @@ How we get from notes to an app that's "a no-brainer above expectations," ordere
 
 ## Phasing (dependency order, not calendar)
 
-**Phase 0 — De-risk the physics (software only, in this repo).**
-- Build the **BLE-mesh voice simulator** from `03-voice-lyra-mesh.md`: N-node topologies,
-  Lyra-sized frames, per-link budget + latency/jitter/loss, ramp concurrent calls to find
-  the breaking point. Output the (topology, bitrate, #calls) → (p95 latency, loss) table.
+**Phase 0 — De-risk the physics (software only, in this repo). — DELIVERED.**
+- Built: the **BLE-mesh voice simulator** in [`../sim/`](../sim) — N-node topologies,
+  Lyra-sized frames, per-link capacity + connection-interval latency + loss + jitter-buffer
+  late-loss, with a breaking-point search. 42 passing tests, including a clean-room
+  cross-check that reproduces the napkin math exactly. Results in
+  [`../sim/results/summary.md`](../sim/results/summary.md); findings folded into
+  `03-voice-lyra-mesh.md`.
 - Why first: "Lyra voice over a BLE mesh at scale" is the riskiest, most differentiating
-  claim. Prove the model before building hardware integrations. Pure software, no
-  third-party code, no devices.
+  claim. It's now validated with measured breakpoints before any hardware work. Pure
+  software, no third-party code, no devices.
 
 **Phase 1 — Crypto + identity core.**
 - Identity keys in secure enclave; Noise XX handshake; safety-number verification; Double
@@ -40,17 +43,17 @@ How we get from notes to an app that's "a no-brainer above expectations," ordere
   + rate limits + membership-as-access), anonymous nth-degree discovery (PSI), local backup
   + WhatsApp-export importer, p2p/cluster hosting.
 
-## Recommended first build (what I'll start on your go-ahead)
+## Next build (Phase 0 is done)
 
-The **Phase 0 mesh-voice simulator** — it's the single highest-leverage, fully-safe
-artifact: it validates the app's most ambitious promise with nothing but original code in
-this repo, and its output directly shapes the routing/codec design. I can start it
-immediately as a small, self-contained program with a results table + a few topology
-scenarios.
+With the voice physics validated, the highest-leverage next safe artifact is the **Phase 1
+crypto core**: two in-process "devices" that run the Bluetooth-style Noise handshake, verify
+safety numbers, and exchange **MLS**-encrypted group messages through an untrusted relay stub
+— tested against RFC 9420 vectors. Like the simulator, it's original in-repo code with no
+third-party repos and no credentials, and it de-risks the second-hardest claim (E2EE group
+state that can fork across a mesh island and the internet, then merge).
 
-Alternative first build if you'd rather see crypto first: the **Phase 1 handshake + MLS
-group demo** (two in-process "devices" that do the Bluetooth-style handshake, verify safety
-numbers, and exchange MLS-encrypted group messages through an untrusted relay stub).
+After that, Phase 2's sync engine can reuse both: the simulator's transport model and the
+crypto core's Envelope format.
 
 ## Top risks (and how we're pre-empting them)
 

@@ -1,0 +1,7 @@
+ble_profile,codec,call_kbps_on_wire,analytic_max_calls,simulated_breaking_point
+ble_classic_37.5k,lyra_v2_9.2k,14.0,2.68,2
+ble_classic_37.5k,lyra_v2_6.0k,10.8,3.47,3
+ble_classic_37.5k,lyra_v2_3.2k,8.0,4.69,4
+ble5_250k,lyra_v2_9.2k,14.0,17.86,17
+ble5_250k,lyra_v2_6.0k,10.8,23.15,23
+ble5_250k,lyra_v2_3.2k,8.0,31.25,31

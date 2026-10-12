@@ -1,0 +1,8 @@
+hops,mean_mte_p95_ms,mean_loss_pct,meets_200ms_2pct
+1,53.9,0.08,True
+2,68.9,0.15,True
+3,83.9,0.33,True
+4,98.9,0.4,True
+5,113.9,0.48,True
+6,128.9,0.58,True
+7,143.9,0.63,True

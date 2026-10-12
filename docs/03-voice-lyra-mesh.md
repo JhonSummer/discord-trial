@@ -76,6 +76,34 @@ walls or ~100–300 m line-of-sight, before we prefer an internet leg.
 **hop-count-aware routing, jitter buffering, and adaptive bitrate**, which is exactly where
 we can beat naive BLE voice.
 
+## Measured results (Phase 0 simulator)
+
+The napkin math above is now backed by a real discrete-event simulator in [`../sim/`](../sim)
+(42 passing tests; run `python3 sim/run_sweep.py` to regenerate
+[`sim/results/summary.md`](../sim/results/summary.md)). It models each BLE link as a FIFO
+server with connection-interval access latency, residual loss, buffer-overflow loss, and
+jitter-buffer late-loss. Key outcomes — some of which **refine** the estimates above:
+
+- **The clean-room cross-check reproduces the napkin math exactly.** With no header overhead
+  on a 37.5 kbps link, the simulated breaking point is **4 concurrent calls at 9.2 kbps and
+  11 at 3.2 kbps** — the same floor(usable / bitrate) numbers derived above. This is asserted
+  as a test (`sim/tests/test_scenarios.py`), so the model and the math validate each other.
+- **Per-packet overhead is a bigger deal than the napkin math let on.** A 23-byte 9.2 kbps
+  frame + a 12-byte (RTP-sized) header is 35 bytes on the wire, which cuts a classic-BLE
+  relay from 4 calls to **2**. Header compression / frame batching recovers most of it →
+  concrete, high-value implementation lever (amortize the header across batched frames).
+- **Single-call latency allows more hops than the ~2–3 estimate.** At a 15 ms connection
+  interval the measured per-hop cost is ~15 ms, so one call stays under 200 ms out to **~7–10
+  BLE hops**. The binding constraint on mesh voice is therefore **per-link concurrent-call
+  capacity and battery, not single-call hop latency.** We keep the hop-aware routing + WebRTC
+  spill, but the trigger is congestion/battery, not a hard low hop cap.
+- **Realistic cluster (24 nodes, ~2–3 avg hops):** ~10 calls @ 9.2 kbps / ~25 @ 3.2 kbps on
+  classic BLE; ≥60 on BLE 5. Adaptive bitrate (9.2k→3.2k under load) **doubles** a classic
+  relay from 2 to 4 calls.
+
+Known gap the sim can't close: **Lyra decode CPU/battery under many simultaneous calls** — a
+hardware measurement for Phase 4, called out below and in `sim/README.md`.
+
 ## Beating the bar on Bluetooth (your point 20)
 
 - **Adaptive bitrate per stream**: 9.2 kbps on a short/healthy path, auto-drop to 3.2 kbps
