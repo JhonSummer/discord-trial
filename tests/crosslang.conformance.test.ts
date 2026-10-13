@@ -9,7 +9,18 @@ import { join } from 'path';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils';
 
 import { Envelope, Frame, Snowflake } from '@messenger/protocol';
-import { IdentityKeyPair, aeadDecrypt, aeadEncrypt, hkdf, safetyNumber, sha256 } from '@messenger/crypto';
+import {
+  DoubleRatchet,
+  Header,
+  IdentityKeyPair,
+  aeadDecrypt,
+  aeadEncrypt,
+  hkdf,
+  kdfCk,
+  kdfRk,
+  safetyNumber,
+  sha256,
+} from '@messenger/crypto';
 
 const V = JSON.parse(readFileSync(join(__dirname, 'vectors', 'conformance.json'), 'utf8'));
 const hex = (s: string) => hexToBytes(s);
@@ -75,5 +86,26 @@ test('snowflake ids match, including the clock-regression clamp', () => {
   const sf = new Snowflake(v.node_id);
   for (const call of v.calls) {
     expect(sf.next(call.now_ms).toString()).toBe(call.id);
+  }
+});
+
+test('double ratchet KDFs match the Python reference', () => {
+  const rk = V.ratchet.kdf_rk;
+  const [outRk, outCk] = kdfRk(hex(rk.rk_hex), hex(rk.dh_hex));
+  expect(bytesToHex(outRk)).toBe(rk.out_rk_hex);
+  expect(bytesToHex(outCk)).toBe(rk.out_ck_hex);
+  const ck = V.ratchet.kdf_ck;
+  const [nextCk, mk] = kdfCk(hex(ck.ck_hex));
+  expect(bytesToHex(nextCk)).toBe(ck.out_ck_hex);
+  expect(bytesToHex(mk)).toBe(ck.out_mk_hex);
+});
+
+test('the TS ratchet decrypts a session encrypted by the Python ratchet', () => {
+  const s = V.ratchet.session;
+  const bob = DoubleRatchet.initBob(hex(s.root_key_hex), hex(s.bob_ratchet_priv_hex));
+  const ad = hex(s.ad_hex);
+  for (const m of s.messages) {
+    const header = new Header(hex(m.dh_hex), m.pn, m.n);
+    expect(bytesToHex(bob.decrypt(header, hex(m.body_hex), ad))).toBe(m.plaintext_hex);
   }
 });

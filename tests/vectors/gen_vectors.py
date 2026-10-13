@@ -6,6 +6,7 @@ TypeScript (`crosslang.conformance.test.ts`) suites assert against. All inputs a
 output is deterministic (Ed25519 signatures included), giving byte-exact parity across languages.
 """
 
+import contextlib
 import json
 import os
 import sys
@@ -19,6 +20,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 from messenger.crypto.identity import IdentityKeyPair, safety_number
 from messenger.crypto.primitives import aead_encrypt, hkdf, sha256
+from messenger.crypto.ratchet import DoubleRatchet, _dh, _kdf_ck, _kdf_rk, _raw
 from messenger.protocol import EPOCH_MS, Envelope, Frame, Snowflake
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conformance.json")
@@ -29,6 +31,73 @@ def kp(sign_seed: bytes, agree_scalar: bytes) -> IdentityKeyPair:
         Ed25519PrivateKey.from_private_bytes(sign_seed),
         X25519PrivateKey.from_private_bytes(agree_scalar),
     )
+
+
+@contextlib.contextmanager
+def deterministic_urandom(seed: int = 0xA11CE):
+    """Make os.urandom deterministic so the captured ratchet session (random AEAD nonces) is
+    reproducible — keeping the whole vector file byte-stable across regenerations."""
+    counter = seed
+    original = os.urandom
+
+    def fake(n: int) -> bytes:
+        nonlocal counter
+        out = bytearray()
+        while len(out) < n:
+            out += (counter & 0xFFFFFFFFFFFFFFFF).to_bytes(8, "big")
+            counter += 1
+        return bytes(out[:n])
+
+    os.urandom = fake
+    try:
+        yield
+    finally:
+        os.urandom = original
+
+
+def ratchet_vectors() -> dict:
+    rk_in, dh_in = bytes(range(32)), bytes(range(32, 64))
+    out_rk, out_ck = _kdf_rk(rk_in, dh_in)
+    ck_in = bytes([0x11]) * 32
+    next_ck, mk = _kdf_ck(ck_in)
+
+    root_key = bytes([0x07]) * 32
+    bob_ratchet_priv = bytes([0x03]) * 32
+    alice_ratchet_priv = bytes([0x05]) * 32
+    ad = b"room:general"
+
+    bob_pub = _raw(X25519PrivateKey.from_private_bytes(bob_ratchet_priv))
+    alice = DoubleRatchet()
+    alice.DHs = X25519PrivateKey.from_private_bytes(alice_ratchet_priv)
+    alice.DHr = bob_pub
+    alice.RK, alice.CKs = _kdf_rk(root_key, _dh(alice.DHs, bob_pub))
+
+    messages = []
+    with deterministic_urandom():
+        for plaintext in (b"first", b"second", b"third", b"fourth"):
+            header, body = alice.encrypt(plaintext, ad)
+            messages.append({
+                "pn": header.pn, "n": header.n, "dh_hex": header.dh.hex(),
+                "body_hex": body.hex(), "plaintext_hex": plaintext.hex(),
+            })
+
+    # Sanity-check that a fresh Bob decrypts the captured session before writing it out.
+    bob = DoubleRatchet.init_bob(root_key, X25519PrivateKey.from_private_bytes(bob_ratchet_priv))
+    from messenger.crypto.ratchet import Header
+    for m in messages:
+        assert bob.decrypt(Header(bytes.fromhex(m["dh_hex"]), m["pn"], m["n"]),
+                           bytes.fromhex(m["body_hex"]), ad) == bytes.fromhex(m["plaintext_hex"])
+
+    return {
+        "kdf_rk": {"rk_hex": rk_in.hex(), "dh_hex": dh_in.hex(),
+                   "out_rk_hex": out_rk.hex(), "out_ck_hex": out_ck.hex()},
+        "kdf_ck": {"ck_hex": ck_in.hex(), "out_ck_hex": next_ck.hex(), "out_mk_hex": mk.hex()},
+        "session": {
+            "root_key_hex": root_key.hex(), "bob_ratchet_priv_hex": bob_ratchet_priv.hex(),
+            "alice_ratchet_pub_hex": _raw(alice.DHs).hex(), "ad_hex": ad.hex(),
+            "messages": messages,
+        },
+    }
 
 
 def build() -> dict:
@@ -79,6 +148,7 @@ def build() -> dict:
             "msg_id_hex": frame.msg_id.hex(), "bytes_hex": frame.to_bytes().hex(),
         },
         "snowflake": {"node_id": 42, "epoch_ms": EPOCH_MS, "calls": calls},
+        "ratchet": ratchet_vectors(),
     }
 
 

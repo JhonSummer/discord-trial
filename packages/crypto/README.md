@@ -26,9 +26,10 @@ reference agree byte-for-byte on the wire.
 ## Status & honesty
 
 Working Python reference (identity, handshake, ratchet, MLS) with tests. The TypeScript port
-(identity + primitives, on `@noble/*`) is in place and locked to the Python reference by the
-cross-language vectors in `../../tests/vectors` — deterministic Ed25519 means even signatures
-match byte-for-byte across both languages. The handshake/ratchet/MLS TS port follows. This is a
-**reference built on vetted primitives**, not an audited protocol stack and
+(identity + primitives + **Double Ratchet**, on `@noble/*`) is in place and locked to the Python
+reference by the cross-language vectors in `../../tests/vectors` — deterministic Ed25519 means even
+signatures match byte-for-byte, and a session encrypted by the Python ratchet is decrypted by the
+TypeScript ratchet (and its key schedule matches byte-for-byte). The handshake/MLS TS port follows.
+This is a **reference built on vetted primitives**, not an audited protocol stack and
 not constant-time-hardened — production should use **libsignal** (1:1) and **OpenMLS** (group),
 with private keys held in the platform secure enclave, never in process as they are here.

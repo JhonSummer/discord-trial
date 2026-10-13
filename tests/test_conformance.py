@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 from messenger.crypto.identity import IdentityKeyPair, PublicIdentity, safety_number
 from messenger.crypto.primitives import aead_decrypt, aead_encrypt, hkdf, sha256
+from messenger.crypto.ratchet import DoubleRatchet, Header, _kdf_ck, _kdf_rk
 from messenger.protocol import Envelope, Frame, Snowflake
 
 _VECTORS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vectors", "conformance.json")
@@ -98,3 +99,29 @@ def test_snowflake_vector():
     sf = Snowflake(v["node_id"])
     for call in v["calls"]:
         assert str(sf.next(call["now_ms"])) == call["id"]
+
+
+def test_ratchet_kdf_vectors():
+    v = _load()["ratchet"]
+    rk = v["kdf_rk"]
+    out_rk, out_ck = _kdf_rk(_hex(rk["rk_hex"]), _hex(rk["dh_hex"]))
+    assert out_rk.hex() == rk["out_rk_hex"]
+    assert out_ck.hex() == rk["out_ck_hex"]
+    ck = v["kdf_ck"]
+    next_ck, mk = _kdf_ck(_hex(ck["ck_hex"]))
+    assert next_ck.hex() == ck["out_ck_hex"]
+    assert mk.hex() == ck["out_mk_hex"]
+
+
+def test_ratchet_session_decrypts():
+    s = _load()["ratchet"]["session"]
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+
+    bob = DoubleRatchet.init_bob(
+        _hex(s["root_key_hex"]),
+        X25519PrivateKey.from_private_bytes(_hex(s["bob_ratchet_priv_hex"])),
+    )
+    ad = _hex(s["ad_hex"])
+    for m in s["messages"]:
+        header = Header(_hex(m["dh_hex"]), m["pn"], m["n"])
+        assert bob.decrypt(header, _hex(m["body_hex"]), ad) == _hex(m["plaintext_hex"])

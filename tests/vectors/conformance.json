@@ -44,6 +44,55 @@
     "bob_sign_seed_hex": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
     "safety_number": "04029 46245 78444 37039 50397 35111 10101 32559 49438 54065 74777 38411"
   },
+  "ratchet": {
+    "kdf_ck": {
+      "ck_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+      "out_ck_hex": "ed50b271f4852277c8218e209858d8bd32a3228a9e4fb6b5a16fb9b4755c53bc",
+      "out_mk_hex": "c4ede064b5f2a51225b2175e5b84fb73f9cec689ac3d912ac4878f7ebeab0149"
+    },
+    "kdf_rk": {
+      "dh_hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "out_ck_hex": "e220df2be0f5d6c3f376e85a3bd348d01bc3d791fce255eefa67160abb3fb4dd",
+      "out_rk_hex": "258f2e212e9bcde78f14e2156d0ec66da335c00c4dfd9b75654bc065cd3268b5",
+      "rk_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    "session": {
+      "ad_hex": "726f6f6d3a67656e6572616c",
+      "alice_ratchet_pub_hex": "50a61409b1ddd0325e9b16b700e719e9772c07000b1bd7786e907c653d20495d",
+      "bob_ratchet_priv_hex": "0303030303030303030303030303030303030303030303030303030303030303",
+      "messages": [
+        {
+          "body_hex": "00000000000a11ce00000000adacf90b4465e05d6444a5813adc6fb5581f636b39",
+          "dh_hex": "50a61409b1ddd0325e9b16b700e719e9772c07000b1bd7786e907c653d20495d",
+          "n": 0,
+          "plaintext_hex": "6669727374",
+          "pn": 0
+        },
+        {
+          "body_hex": "00000000000a11d000000000fc1f737ab1a82845fbc677ea44915b4b01e9657a819a",
+          "dh_hex": "50a61409b1ddd0325e9b16b700e719e9772c07000b1bd7786e907c653d20495d",
+          "n": 1,
+          "plaintext_hex": "7365636f6e64",
+          "pn": 0
+        },
+        {
+          "body_hex": "00000000000a11d200000000935fd9342582a874f5e4ac3f55a7f5aa125bc23dda",
+          "dh_hex": "50a61409b1ddd0325e9b16b700e719e9772c07000b1bd7786e907c653d20495d",
+          "n": 2,
+          "plaintext_hex": "7468697264",
+          "pn": 0
+        },
+        {
+          "body_hex": "00000000000a11d400000000e0bb95557e852c53d66ca268f05a0bc4005efb3cc66e",
+          "dh_hex": "50a61409b1ddd0325e9b16b700e719e9772c07000b1bd7786e907c653d20495d",
+          "n": 3,
+          "plaintext_hex": "666f75727468",
+          "pn": 0
+        }
+      ],
+      "root_key_hex": "0707070707070707070707070707070707070707070707070707070707070707"
+    }
+  },
   "sha256": {
     "input_hex": "687962726964206d657373656e67657220636f6e666f726d616e6365",
     "output_hex": "eade22da368610cde6c04333567b62f25020c32c7f4aea64f96b51ac155bc5aa"
