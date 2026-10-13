@@ -1,5 +1,5 @@
 // Double Ratchet (Signal) on X25519 + HKDF + ChaCha20-Poly1305 — a faithful port of the Python
-// reference (packages/crypto/python/.../ratchet.py). Per-message forward secrecy and
+// reference (crypto/cryptocore/ratchet.py). Per-message forward secrecy and
 // post-compromise security, with bounded skipped/out-of-order handling. The key schedule (HKDF
 // root KDF, HMAC chain KDF, header layout, AEAD AD binding) is byte-identical to Python, which the
 // cross-language conformance vectors lock down. Reference prototype — production should use libsignal.

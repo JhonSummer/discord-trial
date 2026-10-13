@@ -12,7 +12,7 @@ import os
 import sys
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _p in ("packages/crypto/python", "packages/protocol/python"):
+for _p in ("crypto", "packages/protocol/python"):
     sys.path.insert(0, os.path.join(_ROOT, _p))
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey

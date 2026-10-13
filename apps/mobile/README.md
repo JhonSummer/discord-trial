@@ -41,8 +41,8 @@ What still needs hardware / external tools, and is **not** faked here: running t
 **iOS Simulator / Android emulator** (external, see above) or a real device; on-device BLE needs a
 native module (e.g. `react-native-ble-plx`); the demo bootstraps the ratchet from the two known
 in-process identities (a real build gets the root key + prekey from the authenticated handshake);
-and the Lyra voice path (`packages/voice`) is CPU/battery-bound, only settleable by on-device
-profiling.
+and the Lyra voice path (see [`docs/03-voice-lyra-mesh.md`](../../docs/03-voice-lyra-mesh.md)) is
+CPU/battery-bound, only settleable by on-device profiling.
 
 ## Layout
 
