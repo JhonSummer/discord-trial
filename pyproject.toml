@@ -1,0 +1,30 @@
+# Root config for the Python side of the hybrid-messenger monorepo (reference
+# implementations + the BLE-emulator verifier). The on-device app and its TypeScript
+# packages are configured under apps/ and packages/*/ts.
+#
+# Layout:
+#   crypto/cryptocore/            — the Phase 1 crypto core (identity, Noise, ratchet, MLS, relay)
+#   packages/protocol/python/     — messenger.protocol.* (envelope / frame / dag / crdt / wire)
+#   packages/transport/python/    — messenger.transport.* (mesh router, BLE fragmentation)
+#   emulation/                    — the Bumble-backed virtual-BLE verifier harness
+#   sim/                          — the Phase 0 Lyra-over-BLE-mesh simulator
+#
+# protocol and transport are a single PEP 420 implicit-namespace package, `messenger`
+# (no messenger/__init__.py anywhere), so cross-package imports read naturally.
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+# importlib mode keeps the namespace-package layout clean and lets same-named test files
+# (e.g. test_envelope.py) coexist across packages without import collisions.
+addopts = "-q --import-mode=importlib"
+pythonpath = [
+    "crypto",
+    "packages/protocol/python",
+    "packages/transport/python",
+    "emulation",
+    "sim",
+]
+testpaths = [
+    "crypto/tests",
+    "sim/tests",
+]
