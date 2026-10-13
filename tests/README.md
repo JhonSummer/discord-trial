@@ -24,6 +24,10 @@ the app UI, not part of this repo). Real-radio range/interference still needs fi
 ## Run
 
 ```bash
-python3 -m pytest tests            # integration + conformance (Python side)
-# TypeScript side: npm --workspace packages/<pkg> test
+python3 -m pytest                      # Python unit + integration + conformance (whole repo)
+npm test                               # TypeScript unit + conformance (jest, from repo root)
+python3 tests/vectors/gen_vectors.py   # regenerate the shared conformance vectors
 ```
+
+The conformance vectors in `vectors/conformance.json` are generated from the Python reference and
+asserted by both `test_conformance.py` (Python) and `crosslang.conformance.test.ts` (TypeScript).

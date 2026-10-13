@@ -27,6 +27,7 @@ is locked by the vectors in `../../tests`.
 
 ## Status
 
-The Python `Envelope` + Snowflake exist; `Frame`, `EventDAG`, and the CRDTs are landing next,
-then the TypeScript port. The mesh router/node that *moves* these frames lives in
-`../transport`.
+The Python `Envelope`, `Snowflake`, `Frame`, `EventDAG`, and CRDTs all exist with tests, and the
+TypeScript port of the wire format (envelope, frame, snowflake) is in place and locked to the
+Python reference byte-for-byte by the cross-language vectors in `../../tests/vectors`. The mesh
+router/node that *moves* these frames lives in `../transport`.
