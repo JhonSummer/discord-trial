@@ -65,7 +65,7 @@ def evaluate(clean: np.ndarray, config: PipelineConfig, condition: str, bitrate:
 
     abs_list, rob_list = [], []
     loss = pres = lat = 0.0
-    eff = 0
+    eff = 0.0
     for s in seeds:
         out = run_pipeline(clean, cfg, condition, seed=s)
         abs_r = score_pair(clean, out.audio, SAMPLE_RATE,
@@ -79,11 +79,11 @@ def evaluate(clean: np.ndarray, config: PipelineConfig, condition: str, bitrate:
         loss += out.channel_loss
         pres += out.present_rate
         lat += out.mean_latency_ms
-        eff = out.effective_bitrate_bps
+        eff += out.effective_bitrate_bps
     n = len(seeds)
     return Cell(
         bitrate=bitrate, condition=condition, config=cfg.label or config.label,
-        loss=loss / n, present_rate=pres / n, latency_ms=lat / n, eff_bitrate_bps=eff,
+        loss=loss / n, present_rate=pres / n, latency_ms=lat / n, eff_bitrate_bps=int(round(eff / n)),
         abs_scores=_mean(abs_list), rob_scores=_mean(rob_list),
     )
 
@@ -126,7 +126,7 @@ def _merge_cells(cells: List[Cell]) -> Cell:
         loss=float(np.mean([c.loss for c in cells])),
         present_rate=float(np.mean([c.present_rate for c in cells])),
         latency_ms=float(np.mean([c.latency_ms for c in cells])),
-        eff_bitrate_bps=c0.eff_bitrate_bps,
+        eff_bitrate_bps=int(round(float(np.mean([c.eff_bitrate_bps for c in cells])))),
         abs_scores=_mean([c.abs_scores for c in cells]),
         rob_scores=_mean([c.rob_scores for c in cells]),
     )
@@ -172,7 +172,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Lyra voice-quality benchmark")
     ap.add_argument("--bitrates", nargs="+", default=["3.2k", "6.0k", "9.2k"])
     ap.add_argument("--conditions", nargs="+", default=list(CONDITIONS))
-    ap.add_argument("--configs", nargs="+", default=["baseline", "optimized", "optimized_fec"])
+    ap.add_argument("--configs", nargs="+", default=["baseline", "optimized", "optimized_fec", "optimized_abr"])
     ap.add_argument("--seeds", nargs="+", type=int, default=[1, 2, 3])
     ap.add_argument("--outdir", default=os.path.join(os.path.dirname(os.path.dirname(__file__)), "results"))
     args = ap.parse_args()

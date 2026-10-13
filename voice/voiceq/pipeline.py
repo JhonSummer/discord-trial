@@ -7,15 +7,19 @@
           -> PLC (silence or parametric concealment)
           -> phase-continuous synthesizer -> recovered audio
 
-Two presets bracket the optimization the user asked for:
+Presets bracket the optimization the user asked for:
 
 * ``BASELINE`` — a small fixed jitter buffer and silence concealment (drop-outs become gaps).
 * ``OPTIMIZED`` — an adaptive jitter buffer and parametric concealment.
 * ``OPTIMIZED_FEC`` — adds one-frame in-band redundancy (costs +3.2 kbps) for the hardest losses.
+* ``OPTIMIZED_ABR`` — *adaptive* redundancy: a causal controller (``abr.py``) raises the in-band
+  depth only as the measured loss demands, so the stream carries no FEC overhead on a clean link
+  but ramps to two-deep protection under bursts. Same robustness as always-on FEC at a fraction of
+  the average bitrate.
 
 ``run_pipeline`` is deterministic in ``seed`` and returns both the audio and the operating
 statistics (effective bitrate, loss, frames concealed, added latency) so the bench can report the
-latency cost that buys the quality.
+latency/bitrate cost that buys the quality.
 """
 
 from __future__ import annotations
@@ -25,6 +29,7 @@ from typing import List, Optional
 
 import numpy as np
 
+from .abr import REDUNDANCY_BPS, AbrConfig, plan_protection
 from .channel import DeliveryTrace, MeshChannel, MeshCondition, condition
 from .codec import FrameParams, ParametricCodec, Synthesizer, unpack
 from .dsp import mel_centers
@@ -38,7 +43,9 @@ class PipelineConfig:
     jitter_buffer: str = "adaptive"     # "fixed" | "adaptive"
     fixed_target_ms: float = 40.0
     plc: str = "parametric"             # "silence" | "parametric"
-    fec: bool = False
+    fec: bool = False                   # fixed one-frame in-band redundancy
+    abr: bool = False                   # adaptive-depth in-band redundancy (see abr.py)
+    abr_config: Optional[AbrConfig] = None
     aperiodicity: float = 0.08
     label: str = ""
 
@@ -46,7 +53,13 @@ class PipelineConfig:
 BASELINE = PipelineConfig(jitter_buffer="fixed", fixed_target_ms=60.0, plc="silence", fec=False, label="baseline")
 OPTIMIZED = PipelineConfig(jitter_buffer="adaptive", plc="parametric", fec=False, label="optimized")
 OPTIMIZED_FEC = PipelineConfig(jitter_buffer="adaptive", plc="parametric", fec=True, label="optimized+fec")
-PRESETS = {"baseline": BASELINE, "optimized": OPTIMIZED, "optimized_fec": OPTIMIZED_FEC}
+OPTIMIZED_ABR = PipelineConfig(jitter_buffer="adaptive", plc="parametric", abr=True, label="optimized+abr")
+PRESETS = {
+    "baseline": BASELINE,
+    "optimized": OPTIMIZED,
+    "optimized_fec": OPTIMIZED_FEC,
+    "optimized_abr": OPTIMIZED_ABR,
+}
 
 
 @dataclass
@@ -81,6 +94,32 @@ def _apply_fec(received: List[Optional[object]], present: np.ndarray,
     return received
 
 
+def _apply_adaptive_fec(received: List[Optional[object]], present: np.ndarray, depth: np.ndarray,
+                        clean: np.ndarray, aperiodicity: float, main_bands: int, fs: int):
+    """Recover lost frames from *adaptive-depth* redundancy (see ``abr.plan_protection``).
+
+    Packet ``m`` carries coarse copies of frames ``m-1 .. m-depth[m]``. A lost frame ``j`` is
+    recoverable iff some later packet ``m`` arrived and was deep enough to include it, i.e.
+    ``present[m] and depth[m] >= m - j``. The earliest such packet wins.
+    """
+    coarse = ParametricCodec("3.2k", aperiodicity=aperiodicity)
+    coarse_params = [unpack(p, coarse.profile) for p in coarse.encode(clean)]
+    coarse_centers = mel_centers(coarse.profile.n_bands, fs)
+    main_centers = mel_centers(main_bands, fs)
+    max_depth = int(depth.max()) if len(depth) else 0
+    n = len(received)
+    for j in range(n):
+        if received[j] is not None or j >= len(coarse_params):
+            continue
+        for m in range(j + 1, min(n, j + max_depth + 1)):
+            if present[m] and depth[m] >= (m - j):
+                cp = coarse_params[j]
+                shape = np.interp(main_centers, coarse_centers, cp.shape)
+                received[j] = FrameParams(voiced=cp.voiced, f0=cp.f0, gain=cp.gain, shape=shape)
+                break
+    return received
+
+
 def run_pipeline(clean: np.ndarray, config: PipelineConfig,
                  cond: MeshCondition | str, seed: int = 0) -> PipelineResult:
     cond = condition(cond) if isinstance(cond, str) else cond
@@ -98,7 +137,12 @@ def run_pipeline(clean: np.ndarray, config: PipelineConfig,
 
     received: List[Optional[object]] = [params[k] if present[k] else None for k in range(n)]
     effective_bitrate = profile.bitrate_bps
-    if config.fec:
+    if config.abr:
+        depth = plan_protection(present, config.abr_config or AbrConfig())
+        received = _apply_adaptive_fec(received, present, depth, clean, config.aperiodicity,
+                                       profile.n_bands, codec.fs)
+        effective_bitrate += int(round(REDUNDANCY_BPS * float(np.mean(depth)))) if n else 0
+    elif config.fec:
         received = _apply_fec(received, present, clean, config.aperiodicity, profile.n_bands, codec.fs)
         effective_bitrate += 3200
 

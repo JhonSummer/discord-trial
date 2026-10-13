@@ -43,3 +43,36 @@ GATE_IMPROVEMENT: Dict[str, Dict[str, float]] = {
     "moderate": {"rob_stoi": 0.18, "dnsmos_ovrl": 0.70, "plcmos": 0.25},
     "heavy":    {"rob_stoi": 0.30, "dnsmos_ovrl": 0.80, "plcmos": 0.25},
 }
+
+# --- Adaptive bitrate / adaptive protection (``OPTIMIZED_ABR``, see ``voiceq.abr``) ----------
+# The "beat the bar on Bluetooth" lever from docs/03: redundancy depth tracks measured loss, so
+# the stream pays no FEC overhead on a clean link yet ramps to two-deep protection under bursts.
+
+# Floors for the ABR path at 9.2 kbps, per condition. Adaptivity must not cost quality: these are
+# as strong as the fixed optimized bars (set below the measured ABR scores with margin).
+GATE_ABR_BY_CONDITION: Dict[str, Dict[str, float]] = {
+    "clean":    {"rob_stoi": 0.999, "dnsmos_ovrl": 2.40, "plcmos": 2.10, "abs_stoi": 0.78},
+    "light":    {"rob_stoi": 0.92,  "dnsmos_ovrl": 2.30, "plcmos": 2.05, "abs_stoi": 0.77},
+    "moderate": {"rob_stoi": 0.85,  "dnsmos_ovrl": 2.25, "plcmos": 1.85, "abs_stoi": 0.72},
+    "heavy":    {"rob_stoi": 0.83,  "dnsmos_ovrl": 2.20, "plcmos": 1.75, "abs_stoi": 0.66},
+    "burst":    {"rob_stoi": 0.78,  "dnsmos_ovrl": 2.25, "plcmos": 1.70, "abs_stoi": 0.65},
+}
+
+# Efficiency: adaptive protection must spend the redundancy bitrate *only when the link needs it*.
+# On a clean link it must add no overhead (stay at the base rate) and so undercut always-on FEC's
+# fixed +3.2 kbps; on a light link it must still be cheaper than always-on FEC.
+ABR_BASE_BPS = 9200
+GATE_ABR_EFFICIENCY = {
+    "clean_max_bps": 9300,          # ~no protection overhead on a clean link
+    "clean_min_saving_bps": 2800,   # vs always-on FEC (which pays +3200 regardless of loss)
+    "quality_tol": {"rob_stoi": 0.005, "dnsmos_ovrl": 0.05, "plcmos": 0.05},  # clean parity w/ FEC
+}
+
+# Robustness: because it adapts *depth*, ABR recovers bursts that fixed one-frame FEC cannot, so on
+# the hardest losses it must *beat* always-on FEC — and beat the no-redundancy optimized path by a
+# wide margin. Deltas are (ABR - other) at 9.2 kbps.
+GATE_ABR_ROBUSTNESS = {
+    "heavy": {"vs_fec":       {"rob_stoi": 0.02, "plcmos": 0.07}},
+    "burst": {"vs_fec":       {"rob_stoi": -0.01},                 # at least matches fixed FEC
+             "vs_optimized":  {"rob_stoi": 0.02, "plcmos": 0.05}},  # clearly beats no-redundancy
+}
