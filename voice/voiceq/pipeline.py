@@ -120,16 +120,37 @@ def _apply_adaptive_fec(received: List[Optional[object]], present: np.ndarray, d
     return received
 
 
+def _align_trace(trace: DeliveryTrace, n: int, frame_s: float) -> DeliveryTrace:
+    """Match an externally-supplied trace (e.g. from the sim) to the codec's frame count."""
+    m = trace.n
+    if m == n:
+        return trace
+    if m > n:
+        return DeliveryTrace(trace.arrived[:n], trace.arrival_s[:n], trace.send_s[:n], trace.condition)
+    pad = n - m
+    arrived = np.concatenate([trace.arrived, np.zeros(pad, dtype=bool)])
+    arrival = np.concatenate([trace.arrival_s, np.full(pad, np.nan)])
+    send = np.concatenate([trace.send_s, (m + np.arange(pad)) * frame_s])
+    return DeliveryTrace(arrived=arrived, arrival_s=arrival, send_s=send, condition=trace.condition)
+
+
 def run_pipeline(clean: np.ndarray, config: PipelineConfig,
-                 cond: MeshCondition | str, seed: int = 0) -> PipelineResult:
-    cond = condition(cond) if isinstance(cond, str) else cond
+                 cond: MeshCondition | str | None = None, seed: int = 0,
+                 trace: Optional[DeliveryTrace] = None) -> PipelineResult:
     codec = ParametricCodec(config.bitrate, aperiodicity=config.aperiodicity)
     profile = codec.profile
     packets = codec.encode(clean)
     params = [unpack(p, profile) for p in packets]
     n = len(packets)
 
-    trace: DeliveryTrace = MeshChannel(cond).simulate(n, seed)
+    if trace is None:
+        c = condition(cond) if isinstance(cond, str) else cond
+        trace = MeshChannel(c).simulate(n, seed)
+        cond_name = c.name
+    else:
+        # Replay an external delivery trace (e.g. one call from a sim run) over this speech.
+        trace = _align_trace(trace, n, profile.frame_ms / 1000.0)
+        cond_name = cond if isinstance(cond, str) else (cond.name if isinstance(cond, MeshCondition) else "sim")
     jb = (AdaptiveJitterBuffer() if config.jitter_buffer == "adaptive"
           else FixedJitterBuffer(config.fixed_target_ms))
     playout = jb.process(trace)
@@ -158,6 +179,6 @@ def run_pipeline(clean: np.ndarray, config: PipelineConfig,
         present_rate=float(np.mean(present)),
         concealed_frames=int(np.sum(~present)),
         mean_latency_ms=playout.mean_delay_ms,
-        condition_name=cond.name,
+        condition_name=cond_name,
         config=config,
     )
