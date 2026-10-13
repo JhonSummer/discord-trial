@@ -14,7 +14,8 @@
     "baseUrl": ".",
     "paths": {
       "@messenger/protocol": ["packages/protocol/ts/src/index.ts"],
-      "@messenger/crypto": ["packages/crypto/ts/src/index.ts"]
+      "@messenger/crypto": ["packages/crypto/ts/src/index.ts"],
+      "@messenger/transport": ["packages/transport/ts/src/index.ts"]
     }
   }
 }

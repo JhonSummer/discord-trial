@@ -6,6 +6,7 @@
   "workspaces": [
     "packages/protocol/ts",
     "packages/crypto/ts",
+    "packages/transport/ts",
     "apps/mobile"
   ],
   "scripts": {

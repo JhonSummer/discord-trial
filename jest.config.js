@@ -7,5 +7,6 @@ module.exports = {
   moduleNameMapper: {
     '^@messenger/protocol$': '<rootDir>/packages/protocol/ts/src/index.ts',
     '^@messenger/crypto$': '<rootDir>/packages/crypto/ts/src/index.ts',
+    '^@messenger/transport$': '<rootDir>/packages/transport/ts/src/index.ts',
   },
 };

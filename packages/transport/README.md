@@ -30,5 +30,8 @@ ts/         on-device transport (BLE native adapter + relay adapter) for apps/mo
 
 ## Status
 
-Landing after `packages/protocol`: pure router/node first (fast tests), then the Bumble-backed
-BLE binding and the headless multi-node emulation suite.
+Python reference complete: pure router/node (fast tests) plus the Bumble-backed BLE GATT binding
+and the headless multi-node emulation suite (`../../emulation`, `../../tests`). The **TypeScript
+flood router is ported** (`ts/`) with jest tests mirroring the Python/emulation coverage — line,
+star, cyclic (loop-safe dedup), TTL limiting, and store-and-forward — so the same routing logic can
+run on the phone over `react-native-ble-plx`. The TS node/anti-entropy + BLE native adapter follow.
