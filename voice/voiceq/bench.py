@@ -88,6 +88,22 @@ def evaluate(clean: np.ndarray, config: PipelineConfig, condition: str, bitrate:
     )
 
 
+def evaluate_corpus(config: PipelineConfig, condition: str, bitrate: str,
+                    seeds: Sequence[int] = (1, 2), clips: Optional[Dict[str, np.ndarray]] = None) -> Cell:
+    """Evaluate one (config, condition, bitrate) cell averaged over every clip and seed.
+
+    This is exactly what the committed gate asserts on, so gate thresholds are measured the same
+    way the benchmark reports them.
+    """
+    clips = clips or corpus.all_references()
+    per_clip = []
+    for name, sig in clips.items():
+        c = ParametricCodec(bitrate, aperiodicity=config.aperiodicity)
+        coded = c.decode(c.encode(sig))
+        per_clip.append(evaluate(sig, config, condition, bitrate, seeds, coded))
+    return _merge_cells(per_clip)
+
+
 def run_matrix(bitrates: Sequence[str], conditions: Sequence[str], configs: Sequence[PipelineConfig],
                clips: Optional[Dict[str, np.ndarray]] = None, seeds: Sequence[int] = (1, 2, 3)) -> List[Cell]:
     clips = clips or corpus.all_references()
