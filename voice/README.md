@@ -119,6 +119,26 @@ to 0.85 (vs 0.82) and PLCMOS to 1.88 (vs 1.78) — recovering 2-in-a-row losses 
 drops. Averaged over a realistic mostly-clean mix it is cheaper than always-on FEC while being
 strictly more robust on the cases that matter.
 
+## Scoring the simulator's actual congestion (sim → voice bridge)
+
+[`sim/`](../sim) answers *"how many calls fit on the BLE mesh?"*; this harness answers *"how good
+does it sound?"*. The two now connect: `SimParams(trace=True)` makes the discrete-event simulator
+emit a per-packet delivery trace per call, and [`from_sim_delays`](voiceq/channel.py) replays one
+call's **exact** loss/delay pattern through the voice path. So we can score what the simulator's
+breaking point actually *sounds* like — and the adaptive-bitrate capacity lever becomes a perceptual
+win. On a conservative 50 kbps relay (primary clip, `OPTIMIZED` path):
+
+| relay load | the call's rate | frames played out | STOI |
+| --- | --- | --- | --- |
+| 1 call | 9.2 kbps | 100% | 0.77 |
+| 7 calls | fixed 9.2 kbps | 14% | 0.11 |
+| 7 calls | **adaptive → 6.0 kbps** | **99%** | **0.81** |
+
+At 9.2 kbps the oversubscribed relay queues packets until they miss the jitter-buffer deadline and
+the call collapses; downshifting the rate — the sim's capacity lever — fits the relay and keeps the
+very same call intelligible, even at lower codec fidelity.
+[`tests/test_sim_bridge.py`](tests/test_sim_bridge.py) asserts this end to end.
+
 ## The gate (hard requirement)
 
 [`tests/test_voice_quality_gate.py`](tests/test_voice_quality_gate.py) enforces

@@ -71,7 +71,8 @@ in the app.
   controller + link layer — actual GATT writes/notifies between virtual devices, so routing,
   fragmentation, dedup, TTL, and reconciliation are tested on the stack, headless.
 - **Radio-level capacity/latency** is modeled in [`sim`](sim) and cross-checked against the
-  analytic bound.
+  analytic bound — and the sim can export a per-call delivery trace that [`voice`](voice) replays,
+  so the simulator's congestion breakpoints are also scored for how they actually *sound*.
 - **Voice quality** is scored objectively in [`voice`](voice): real speech is run through the
   codec, the mesh channel (loss / jitter / multi-hop), a jitter buffer, adaptive-bitrate packet
   protection, and packet-loss concealment, then graded with STOI, PESQ, a ViSQOL-style NSIM proxy,
