@@ -8,6 +8,7 @@
 #   packages/transport/python/    — messenger.transport.* (mesh router, BLE fragmentation)
 #   emulation/                    — the Bumble-backed virtual-BLE verifier harness
 #   sim/                          — the Phase 0 Lyra-over-BLE-mesh simulator
+#   voice/                        — voiceq.*: the Lyra voice-quality harness + committed gate
 #
 # protocol and transport are a single PEP 420 implicit-namespace package, `messenger`
 # (no messenger/__init__.py anywhere), so cross-package imports read naturally.
@@ -23,6 +24,7 @@ pythonpath = [
     "packages/transport/python",
     "emulation",
     "sim",
+    "voice",
 ]
 testpaths = [
     "crypto/tests",
@@ -30,4 +32,8 @@ testpaths = [
     "packages/transport/tests",
     "tests",
     "sim/tests",
+    "voice/tests",
+]
+markers = [
+    "voicegate: the committed Lyra voice-quality gate (STOI/PESQ/DNSMOS/PLCMOS thresholds)",
 ]
