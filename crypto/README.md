@@ -20,8 +20,13 @@ re-implemented, nothing touches the network, and there are no credentials anywhe
 ```bash
 cd crypto
 pip install -r requirements.txt
-python3 -m pytest -q          # 43 tests
+python3 -m pytest -q          # 44 tests
+python3 demo.py               # runnable deliverable: a transcript of the scenario below
 ```
+
+`demo.py` runs the Phase 1 deliverable live — the Noise handshake, the safety-number check,
+1:1 and MLS group messages through the relay — and prints what each party sends and reads and
+what the relay stores (opaque ciphertext). It prints no keys or secrets.
 
 ## What's in here
 
