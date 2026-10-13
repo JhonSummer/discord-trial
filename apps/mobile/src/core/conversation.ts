@@ -6,7 +6,7 @@
 // in the single-device demo). Relays only ever see opaque ciphertext.
 import { bytesToHex, concatBytes, utf8ToBytes } from '@noble/hashes/utils';
 
-import { DEFAULT_TTL, Envelope, Frame, Snowflake } from '@messenger/protocol';
+import { Envelope, Snowflake } from '@messenger/protocol';
 import { DoubleRatchet, Header, IdentityKeyPair, PublicIdentity } from '@messenger/crypto';
 
 import { Transport } from '../transport/types';
@@ -52,7 +52,8 @@ export class Conversation {
       concatBytes(header.serialize(), body),
     );
     env.sig = this.me.sign(env.body());
-    this.transport.send(new Frame(DEFAULT_TTL, env.toBytes()).toBytes());
+    // The Conversation deals in envelopes; the mesh Transport owns hop framing (TTL/dedup).
+    this.transport.send(env.toBytes());
 
     const msg: ChatMessage = {
       eid: env.eid,
@@ -69,12 +70,12 @@ export class Conversation {
     this.unsubscribe();
   }
 
-  private ingest(frameBytes: Uint8Array): void {
+  private ingest(envelopeBytes: Uint8Array): void {
     let env: Envelope;
     try {
-      env = Envelope.fromBytes(Frame.fromBytes(frameBytes).payload);
+      env = Envelope.fromBytes(envelopeBytes);
     } catch {
-      return; // not a well-formed frame/envelope — ignore
+      return; // not a well-formed envelope — ignore
     }
     if (bytesToHex(env.sender) === bytesToHex(this.me.public.fingerprint)) return; // our own traffic
 
