@@ -7,16 +7,20 @@ system design, and Lyra-compressed voice.
 The guiding constraint of this repo is **verifiability over hand-waving**: the Bluetooth mesh
 transport is exercised headless on a real emulated BLE stack (Google's
 [Bumble](https://github.com/google/bumble), which simulates the controller and link layer),
-not just estimated with napkin math, and the crypto core is pinned to published RFC vectors.
-Anything that genuinely needs physical hardware (the Lyra codec's CPU/battery cost) is called
-out honestly rather than faked.
+not just estimated with napkin math; the crypto core is pinned to published RFC vectors; and the
+**voice path is scored on real audio** by a committed quality harness ([`voice/`](voice)) that
+runs speech through the codec + mesh impairments + jitter buffer + packet-loss concealment and
+grades the result with STOI, PESQ, ViSQOL and neural MOS (DNSMOS/PLCMOS). Anything that genuinely
+needs physical hardware (the Lyra codec's CPU/battery cost) is called out honestly rather than
+faked.
 
 ## Quickstart
 
 ```bash
-# Python side — crypto core, protocol, transport, BLE-emulator verifier, conformance
-pip install -r requirements.txt
-python3 -m pytest                          # 136 tests
+# Python side — crypto core, protocol, transport, BLE-emulator verifier, conformance, voice gate
+pip install -r requirements.txt            # (for the voice metrics: apt-get install python3.12-dev first)
+python3 -m pytest                          # full suite, incl. the Lyra voice-quality gate
+PYTHONPATH=voice python3 -m voiceq.bench    # Lyra voice-quality before/after matrix -> voice/results/
 python3 crypto/demo.py                      # runnable Phase 1 deliverable transcript
 
 # TypeScript side — shared packages + the phone app
@@ -37,6 +41,7 @@ cd apps/mobile && npx expo export --platform ios   # bundles the app (Hermes)
 | [`packages/transport`](packages/transport) | Moves frames: flood mesh router (TTL/dedup/store-and-forward), node sync, and the concrete **BLE GATT binding** (fragmentation/reassembly over the ATT MTU). Python + TypeScript. |
 | [`emulation`](emulation) | **The automated verifier.** A headless BLE emulation harness on Bumble: spins up N virtual devices on one link, runs the transport's real GATT service, and exercises multi-node mesh (line / star / multi-hop) with no radios. |
 | [`sim`](sim) | Phase 0 discrete-event radio simulator (`meshvoice`): Lyra-over-BLE-mesh timing / throughput / loss, cross-checked against closed-form capacity. |
+| [`voice`](voice) | **The Lyra voice-quality harness + committed gate (`voiceq`).** Runs real speech through a low-bitrate parametric codec, the mesh channel (loss/jitter/multi-hop), an adaptive jitter buffer and packet-loss concealment, and scores it with STOI, PESQ, a ViSQOL-style NSIM proxy, and neural MOS (DNSMOS/PLCMOS) — offline. Strong thresholds are enforced as a hard test-suite gate. |
 | [`tests`](tests) | Cross-cutting: cross-language conformance vectors (TypeScript ↔ Python), and end-to-end integration (E2EE ciphertext carried over the emulated BLE mesh). |
 | [`docs`](docs) | Architecture and design notes, with an explicit public-sources-only sourcing stance. |
 
@@ -67,6 +72,11 @@ in the app.
   fragmentation, dedup, TTL, and reconciliation are tested on the stack, headless.
 - **Radio-level capacity/latency** is modeled in [`sim`](sim) and cross-checked against the
   analytic bound.
+- **Voice quality** is scored objectively in [`voice`](voice): real speech is run through the
+  codec, the mesh channel (loss / jitter / multi-hop), a jitter buffer, and packet-loss
+  concealment, then graded with STOI, PESQ, a ViSQOL-style NSIM proxy, and neural MOS
+  (DNSMOS/PLCMOS) — all offline. Strong per-condition, per-bitrate thresholds are enforced as a
+  committed gate, so a codec / jitter-buffer / PLC regression fails the build.
 - **Cross-language parity** is enforced by shared vectors in [`tests`](tests): the same
   envelope/frame/crypto outputs are reproduced byte-for-byte by both Python and TypeScript
   (deterministic Ed25519 means even signatures match), and a session encrypted by the Python
@@ -80,7 +90,11 @@ in the app.
 
 - **Lyra codec CPU/battery** under many simultaneous mesh calls cannot be settled by
   emulation or simulation; it needs on-device profiling. The sim gives the *shape* of the
-  limits; hardware sets the constants.
+  limits; hardware sets the constants. Voice *quality* is no longer hand-waved — the mesh voice
+  path (codec framing + loss/jitter/multi-hop + jitter buffer + PLC) is objectively scored and
+  gated in [`voice`](voice) — but that harness runs a parametric codec at Lyra's operating points
+  as a pluggable stand-in, so the real neural Lyra's absolute fidelity and its CPU/battery cost
+  are what still need on-device measurement.
 - Bumble emulates the BLE **stack** faithfully but is not an RF model — real-world range,
   interference, and co-channel collisions still require field testing.
 
