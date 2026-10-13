@@ -9,3 +9,16 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+
+# Node / TypeScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Expo / React Native
+.expo/
+.expo-shared/
+apps/*/android/
+apps/*/ios/
+web-build/
