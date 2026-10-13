@@ -12,9 +12,14 @@ no network access, no credentials.
 
 ```bash
 cd sim
-python3 -m pytest -q          # 42 tests
+python3 -m pytest -q          # network model
 python3 run_sweep.py          # writes results/ and prints the tables
 ```
+
+Perceptual quality (ViSQOL, DNSMOS, STOI) of real Lyra audio under the same mesh
+losses is a separate harness: `python3 run_quality.py`. It needs the packages in
+`requirements-quality.txt` and a local build of Lyra 1.3.2 (`quality/setup_lyra.sh`).
+See [Voice quality](#voice-quality) below.
 
 ## What it models
 
@@ -75,3 +80,28 @@ python3 run_sweep.py          # writes results/ and prints the tables
 These are deliberately conservative where it matters; the simulator's job is to find the
 *shape* of the limits and the load breakpoints, which it does and cross-checks against
 closed-form capacity.
+
+## Voice quality
+
+`run_quality.py` pushes the committed 12 s clean-speech fixture through Lyra v2 at
+3.2, 6, and 9.2 kbps, then through the mesh conditions in `quality/channel.py`
+(residual packet loss, a tight jitter buffer, 3- and 5-hop paths, and a loaded
+relay). The simulator's per-frame fate is the decoder's packet-loss pattern:
+played frames are decoded, everything else is Lyra packet-loss concealment.
+Jitter that the buffer absorbs does not warp the waveform.
+
+Each waveform is scored with:
+
+- **ViSQOL** speech mode (lattice MOS-LQO), against the clean fixture
+- **DNSMOS P.835** overall / signal / background, a reference-free neural MOS
+- **STOI**, after compensating Lyra's encode delay
+
+`quality/thresholds.json` is the gate. `python3 run_quality.py --check` exits
+non-zero when a cell is below its floor. Tables land in `quality/results/`.
+
+```bash
+cd sim
+python3 -m venv .venv && .venv/bin/pip install -r requirements-quality.txt
+bash quality/setup_lyra.sh
+.venv/bin/python run_quality.py
+```

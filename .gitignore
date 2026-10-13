@@ -10,6 +10,10 @@ __pycache__/
 .pytest_cache/
 .venv/
 
+# Lyra quality harness: decoded audio and the downloaded DNSMOS graph
+sim/quality/work/
+sim/quality/.cache/
+
 # Node / TypeScript
 node_modules/
 dist/

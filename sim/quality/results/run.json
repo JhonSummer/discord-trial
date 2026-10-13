@@ -1,0 +1,14 @@
+{
+  "lyra_commit": "47698dadf0010abff6a848e02642f55f806d4842",
+  "speech_fixture_sha256": "79637370974199ba3055bbe7bda7b7dc67a7f5fc311d8d2ad37df71431914679",
+  "dnsmos_p835_sha256": "269fbebdb513aa23cddfbb593542ecc540284a91849ac50516870e1ac78f6edd",
+  "python": "3.12.3",
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "soundfile": "0.14.0",
+    "pystoi": "0.4.1",
+    "onnxruntime": "1.31.0",
+    "visqol-python": "3.8.0"
+  }
+}

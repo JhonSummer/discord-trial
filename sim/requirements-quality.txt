@@ -1,0 +1,8 @@
+# Metrics for sim/run_quality.py. The mesh simulator itself stays stdlib-only.
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements-quality.txt
+numpy==2.5.4
+scipy==1.18.1
+soundfile==0.14.0
+pystoi==0.4.1
+onnxruntime==1.31.0
+visqol-python[lattice]==3.8.0

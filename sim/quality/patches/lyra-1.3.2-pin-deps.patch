@@ -1,0 +1,28 @@
+diff --git a/WORKSPACE b/WORKSPACE
+index 388661c..193a7e5 100644
+--- a/WORKSPACE
++++ b/WORKSPACE
+@@ -89,17 +89,19 @@ http_archive(
+     ],
+ )
+ 
+-# Google logging
++# Google logging.
++# Pin both repos. Upstream glog master renamed @com_github_gflags_gflags to
++# @gflags, which this WORKSPACE does not define (v0.6.0 still uses the old name).
++# The gflags fork branch moves; pin the commit this build was verified with.
+ git_repository(
+     name = "com_google_glog",
+     remote = "https://github.com/google/glog.git",
+-    branch = "master"
++    commit = "b33e3bad4c46c8a6345525fd822af355e5ef9446",  # v0.6.0
+ )
+-# Dependency for glog
+ git_repository(
+     name = "com_github_gflags_gflags",
+     remote = "https://github.com/mchinen/gflags.git",
+-    branch = "android_linking_fix"
++    commit = "57996515992ad933fd7f70bf2c9675cfe4d2e33f",  # android_linking_fix
+ )
+ 
+ # Bazel/build rules
