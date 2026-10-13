@@ -146,3 +146,25 @@ def test_packet_fates_partition_generated_packets():
     assert sum(f.outcome == "congestion" for f in res.fates) == res.lost_congestion
     assert sum(f.outcome == "late" for f in res.fates) == res.lost_late
     assert sum(f.outcome == "ok" for f in res.fates) == res.generated - res.total_lost
+
+
+def test_fates_and_packet_trace_agree_on_network_drops():
+    # Both traces describe the same run. ``fates`` classifies jitter-buffer late loss;
+    # ``packet_trace`` keeps the raw network delay so the voice harness can apply its own buffer.
+    g = _single_link(ci=15.0, per=0.05)
+    call = Call(0, [0, 1], LYRA_V2_9200, overhead_bytes=12.0)
+    params = SimParams(duration_s=5.0, jitter_buffer_ms=8.0, seed=4, trace=True)
+    res = Simulator(g, [call], params).run()
+
+    assert res.packet_trace is not None
+    trace = res.packet_trace[call.call_id]
+    assert len(trace.lost) == len(res.fates) == res.generated
+    assert any(f.outcome == "late" for f in res.fates)
+    for fate, lost, delay in zip(res.fates, trace.lost, trace.delay_s):
+        if fate.outcome in ("random", "congestion"):
+            assert lost is True
+            assert math.isnan(delay)
+        else:
+            assert fate.outcome in ("ok", "late")
+            assert lost is False
+            assert not math.isnan(delay)

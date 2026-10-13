@@ -1,0 +1,11 @@
+{
+  "name": "@messenger/protocol",
+  "version": "0.0.0",
+  "description": "Wire format both transports carry: envelope, frame, snowflake (TypeScript)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "license": "MIT",
+  "dependencies": {
+    "@noble/hashes": "^1.5.0"
+  }
+}

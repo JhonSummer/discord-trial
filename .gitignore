@@ -13,3 +13,16 @@ __pycache__/
 # Lyra quality harness: decoded audio and the downloaded DNSMOS graph
 sim/quality/work/
 sim/quality/.cache/
+
+# Node / TypeScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Expo / React Native
+.expo/
+.expo-shared/
+apps/*/android/
+apps/*/ios/
+web-build/

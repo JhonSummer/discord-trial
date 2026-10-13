@@ -1,0 +1,13 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@messenger/protocol": ["../../packages/protocol/ts/src/index.ts"],
+      "@messenger/crypto": ["../../packages/crypto/ts/src/index.ts"]
+    }
+  },
+  "include": ["index.ts", "App.tsx", "src", "expo-env.d.ts"]
+}
