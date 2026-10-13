@@ -46,7 +46,14 @@ And orthogonally: **app code** (`apps/mobile`, `packages/*`) is the product; the
   fragmentation, dedup, TTL, and reconciliation are tested on the stack, headless on CI.
 - **Radio-level capacity/latency** is modeled in [`sim`](sim) and cross-checked against the
   analytic bound.
-- **Cross-language parity** is enforced by shared test vectors in [`tests`](tests).
+- **Cross-language parity** is enforced by shared test vectors in [`tests`](tests): the same
+  envelope/frame/crypto outputs are reproduced byte-for-byte by both Python and TypeScript
+  (deterministic Ed25519 means even signatures match).
+- **The app core** (`apps/mobile` conversation view-model: signing, E2EE, wire format over a
+  pluggable transport) is jest-tested headless, and the Expo app is checked to actually **bundle**
+  (Metro resolves the workspace TypeScript packages into a native JS bundle) — so "runnable" is
+  verified, not just asserted. Launching the UI itself still needs the external iOS Simulator /
+  Android emulator.
 
 ## What still needs real hardware (honest caveats)
 
