@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "noEmit": true
+  },
+  "include": [
+    "packages/protocol/ts/src",
+    "packages/crypto/ts/src",
+    "packages/protocol/ts/__tests__",
+    "packages/crypto/ts/__tests__",
+    "tests"
+  ]
+}
