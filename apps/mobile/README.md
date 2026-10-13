@@ -29,17 +29,20 @@ transport; see the root README's demarcation table.
 ## Status
 
 Runnable Expo app with a **headless-tested core**. The `Conversation` view-model turns typed text
-into signed (Ed25519), end-to-end-encrypted (ChaCha20-Poly1305) envelopes on the shared
-`@messenger/protocol` wire format and carries them over a pluggable `Transport` — so the **same**
-code that passes the Bumble emulation tests is what runs on the phone. The core and its transport
-abstraction are unit-tested with `jest` in CI (`__tests__/conversation.test.ts`); the React UI is
-a thin layer over that core.
+into signed (Ed25519), end-to-end-encrypted envelopes on the shared `@messenger/protocol` wire
+format and carries them over a pluggable `Transport` — so the **same** code that passes the Bumble
+emulation tests is what runs on the phone. Encryption is the real **Double Ratchet** from
+`@messenger/crypto` (forward secrecy + post-compromise security), bootstrapped per 1:1 session in
+`src/core/session.ts`. The core and its transport abstraction are unit-tested with `jest` in CI
+(`__tests__/conversation.test.ts`, including a forward-secrecy check); the React UI is a thin layer
+over that core.
 
 What still needs hardware / external tools, and is **not** faked here: running the UI needs the
 **iOS Simulator / Android emulator** (external, see above) or a real device; on-device BLE needs a
-native module (e.g. `react-native-ble-plx`); the room key is currently a static-DH placeholder
-until the Double Ratchet / MLS TypeScript port lands in `packages/crypto`; and the Lyra voice path
-(`packages/voice`) is CPU/battery-bound and only settleable by on-device profiling.
+native module (e.g. `react-native-ble-plx`); the demo bootstraps the ratchet from the two known
+in-process identities (a real build gets the root key + prekey from the authenticated handshake);
+and the Lyra voice path (`packages/voice`) is CPU/battery-bound, only settleable by on-device
+profiling.
 
 ## Layout
 

@@ -1,6 +1,6 @@
 // React bridge from the tested, transport-agnostic Conversation view-model (src/core) to UI state.
 // For a single-device demo it wires "me" and an in-process echo "peer" to a LoopbackBus, so the
-// full signed + end-to-end-encrypted round trip runs on one phone with no network. Swapping the
+// full signed + Double-Ratchet-encrypted round trip runs on one phone with no network. Swapping the
 // LoopbackBus for the relay / BLE-mesh Transport is the only change needed to talk to real peers —
 // the core code above this line does not change.
 import { useCallback, useRef, useState } from 'react';
@@ -10,6 +10,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 import { IdentityKeyPair, safetyNumber } from '@messenger/crypto';
 
 import { ChatMessage, Conversation } from '../core/conversation';
+import { bootstrapRatchets } from '../core/session';
 import { LoopbackBus } from '../transport/loopback';
 
 const ROOM = new TextEncoder().encode('general');
@@ -25,9 +26,10 @@ function createSession(): Session {
   const me = IdentityKeyPair.generate();
   const peer = IdentityKeyPair.generate();
   const bus = new LoopbackBus();
+  const { initiator, responder } = bootstrapRatchets(me, peer);
   return {
-    mine: new Conversation(me, peer.public, ROOM, bus.endpoint(), 1),
-    peer: new Conversation(peer, me.public, ROOM, bus.endpoint(), 2),
+    mine: new Conversation(me, peer.public, ROOM, bus.endpoint(), initiator, 1),
+    peer: new Conversation(peer, me.public, ROOM, bus.endpoint(), responder, 2),
     myFingerprint: bytesToHex(me.public.fingerprint).slice(0, 16),
     safetyNumber: safetyNumber(me.public, peer.public),
   };
