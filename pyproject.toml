@@ -27,5 +27,6 @@ pythonpath = [
 testpaths = [
     "crypto/tests",
     "packages/protocol/tests",
+    "packages/transport/tests",
     "sim/tests",
 ]
