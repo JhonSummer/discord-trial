@@ -28,5 +28,6 @@ testpaths = [
     "crypto/tests",
     "packages/protocol/tests",
     "packages/transport/tests",
+    "tests",
     "sim/tests",
 ]
