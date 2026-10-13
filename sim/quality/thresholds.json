@@ -1,0 +1,5 @@
+{
+  "calibrated": false,
+  "notes": "Floors are filled from the Lyra 1.3.2 sweep on the committed speech fixture. A cell passes when ViSQOL, DNSMOS P.835 OVRL, and STOI all meet the floor.",
+  "gates": {}
+}

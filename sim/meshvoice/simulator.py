@@ -66,6 +66,7 @@ class SimParams:
 @dataclass
 class _PacketRecord:
     call_id: int
+    packet_index: int
     delivered: bool = False
     loss_reason: Optional[str] = None  # "random" | "congestion"
     network_delay_s: float = 0.0
@@ -80,6 +81,20 @@ class DeliveredPacket:
     mouth_to_ear_s: float  # valid only when not late
 
 
+@dataclass(frozen=True)
+class PacketFate:
+    """What happened to one generated voice frame.
+
+    ``outcome`` is ``ok`` (played out of the jitter buffer), ``random`` (residual
+    per-link error), ``congestion`` (buffer overflow), or ``late`` (missed the
+    playout deadline). One fate is recorded per generated packet.
+    """
+
+    call_id: int
+    packet_index: int
+    outcome: str
+
+
 @dataclass
 class SimResult:
     params: SimParams
@@ -91,6 +106,7 @@ class SimResult:
     generated: int
     link_utilization: Dict[Tuple[int, int], float]
     link_max_queue_ms: Dict[Tuple[int, int], float]
+    fates: List[PacketFate] = field(default_factory=list)
 
     @property
     def total_lost(self) -> int:
@@ -136,6 +152,7 @@ class Simulator:
                 capture = call.start_s + call.phase_s + k * interval
 
         delivered_raw: List[_PacketRecord] = []
+        fates: List[PacketFate] = []
         lost_random = 0
         lost_congestion = 0
 
@@ -158,6 +175,7 @@ class Simulator:
             if queue_wait > lp.max_queue_delay_ms / 1000.0:
                 link.dropped_congestion += 1
                 lost_congestion += 1
+                fates.append(PacketFate(call.call_id, k, "congestion"))
                 continue
 
             service = call.packet_bits / lp.capacity_bps
@@ -172,22 +190,23 @@ class Simulator:
 
             if rng.random() < lp.per:
                 lost_random += 1
+                fates.append(PacketFate(call.call_id, k, "random"))
                 continue
 
             is_last = hop + 1 == len(call.path) - 1
             if is_last:
                 delivered_raw.append(_PacketRecord(
-                    call_id=call.call_id, delivered=True,
+                    call_id=call.call_id, packet_index=k, delivered=True,
                     network_delay_s=depart - send_ready, hops=len(call.path) - 1))
             else:
                 seq += 1
                 heapq.heappush(heap, (depart + relay_s, seq, ci, k, hop + 1, send_ready))
 
         return self._finalize(delivered_raw, lost_random, lost_congestion, generated,
-                              encode_s, decode_s)
+                              encode_s, decode_s, fates)
 
     def _finalize(self, delivered_raw, lost_random, lost_congestion, generated,
-                  encode_s, decode_s) -> SimResult:
+                  encode_s, decode_s, fates: List[PacketFate]) -> SimResult:
         p = self.params
         jb_s = p.jitter_buffer_ms / 1000.0
 
@@ -207,17 +226,21 @@ class Simulator:
             late = rec.network_delay_s > budget + 1e-12
             if late:
                 lost_late += 1
+                fates.append(PacketFate(rec.call_id, rec.packet_index, "late"))
                 delivered.append(DeliveredPacket(rec.call_id, rec.network_delay_s, True, float("nan")))
             else:
                 mte = call.packet_interval_s + encode_s + rec.network_delay_s + decode_s
+                fates.append(PacketFate(rec.call_id, rec.packet_index, "ok"))
                 delivered.append(DeliveredPacket(rec.call_id, rec.network_delay_s, False, mte))
+        fates.sort(key=lambda fate: (fate.call_id, fate.packet_index))
 
         util = {k: v.utilization(p.duration_s) for k, v in self.graph.links.items()}
         maxq = {k: v.max_queue_delay * 1000.0 for k, v in self.graph.links.items()}
         return SimResult(
             params=p, calls=self.calls, delivered=delivered,
             lost_random=lost_random, lost_congestion=lost_congestion, lost_late=lost_late,
-            generated=generated, link_utilization=util, link_max_queue_ms=maxq)
+            generated=generated, link_utilization=util, link_max_queue_ms=maxq,
+            fates=fates)
 
     def _call_by_id(self, call_id: int) -> Call:
         for c in self.calls:

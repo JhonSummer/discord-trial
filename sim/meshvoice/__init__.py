@@ -9,7 +9,7 @@ rather than assumptions. Pure standard-library Python (numpy optional, not requi
 from .codec import CodecProfile, LYRA_V1_3000, LYRA_V2_3200, LYRA_V2_6000, LYRA_V2_9200, PROFILES, by_name
 from .network import Graph, Link, LinkParams, line, ring, star, grid, random_geometric
 from .routing import shortest_path, lowest_latency_path
-from .simulator import Call, SimParams, Simulator, SimResult
+from .simulator import Call, PacketFate, SimParams, Simulator, SimResult
 from .metrics import percentile, summarize, CallSummary, AggregateSummary
 
 __all__ = [
@@ -17,6 +17,6 @@ __all__ = [
     "PROFILES", "by_name",
     "Graph", "Link", "LinkParams", "line", "ring", "star", "grid", "random_geometric",
     "shortest_path", "lowest_latency_path",
-    "Call", "SimParams", "Simulator", "SimResult",
+    "Call", "PacketFate", "SimParams", "Simulator", "SimResult",
     "percentile", "summarize", "CallSummary", "AggregateSummary",
 ]

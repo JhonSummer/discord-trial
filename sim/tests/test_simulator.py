@@ -130,3 +130,19 @@ def test_overhead_reduces_delivered_capacity():
     with_oh = summarize(Simulator(g, calls, params).run())
 
     assert with_oh.loss_fraction > no_oh.loss_fraction
+
+
+def test_packet_fates_partition_generated_packets():
+    g = _single_link(ci=15.0, per=0.05)
+    call = Call(0, [0, 1], LYRA_V2_9200, overhead_bytes=12.0)
+    params = SimParams(duration_s=5.0, jitter_buffer_ms=8.0, seed=4)
+    res = Simulator(g, [call], params).run()
+
+    assert len(res.fates) == res.generated
+    keys = [(f.call_id, f.packet_index) for f in res.fates]
+    assert keys == sorted(keys)
+    assert len(set(keys)) == len(keys)
+    assert sum(f.outcome == "random" for f in res.fates) == res.lost_random
+    assert sum(f.outcome == "congestion" for f in res.fates) == res.lost_congestion
+    assert sum(f.outcome == "late" for f in res.fates) == res.lost_late
+    assert sum(f.outcome == "ok" for f in res.fates) == res.generated - res.total_lost
