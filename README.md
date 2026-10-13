@@ -41,7 +41,7 @@ cd apps/mobile && npx expo export --platform ios   # bundles the app (Hermes)
 | [`packages/transport`](packages/transport) | Moves frames: flood mesh router (TTL/dedup/store-and-forward), node sync, and the concrete **BLE GATT binding** (fragmentation/reassembly over the ATT MTU). Python + TypeScript. |
 | [`emulation`](emulation) | **The automated verifier.** A headless BLE emulation harness on Bumble: spins up N virtual devices on one link, runs the transport's real GATT service, and exercises multi-node mesh (line / star / multi-hop) with no radios. |
 | [`sim`](sim) | Phase 0 discrete-event radio simulator (`meshvoice`): Lyra-over-BLE-mesh timing / throughput / loss, cross-checked against closed-form capacity. |
-| [`voice`](voice) | **The Lyra voice-quality harness + committed gate (`voiceq`).** Runs real speech through a low-bitrate parametric codec, the mesh channel (loss/jitter/multi-hop), an adaptive jitter buffer and packet-loss concealment, and scores it with STOI, PESQ, a ViSQOL-style NSIM proxy, and neural MOS (DNSMOS/PLCMOS) — offline. Strong thresholds are enforced as a hard test-suite gate. |
+| [`voice`](voice) | **The Lyra voice-quality harness + committed gate (`voiceq`).** Runs real speech through a low-bitrate parametric codec, the mesh channel (loss/jitter/multi-hop), an adaptive jitter buffer, adaptive-bitrate packet protection and packet-loss concealment, and scores it with STOI, PESQ, a ViSQOL-style NSIM proxy, and neural MOS (DNSMOS/PLCMOS) — offline. Strong thresholds are enforced as a hard test-suite gate. |
 | [`tests`](tests) | Cross-cutting: cross-language conformance vectors (TypeScript ↔ Python), and end-to-end integration (E2EE ciphertext carried over the emulated BLE mesh). |
 | [`docs`](docs) | Architecture and design notes, with an explicit public-sources-only sourcing stance. |
 
@@ -73,10 +73,11 @@ in the app.
 - **Radio-level capacity/latency** is modeled in [`sim`](sim) and cross-checked against the
   analytic bound.
 - **Voice quality** is scored objectively in [`voice`](voice): real speech is run through the
-  codec, the mesh channel (loss / jitter / multi-hop), a jitter buffer, and packet-loss
-  concealment, then graded with STOI, PESQ, a ViSQOL-style NSIM proxy, and neural MOS
-  (DNSMOS/PLCMOS) — all offline. Strong per-condition, per-bitrate thresholds are enforced as a
-  committed gate, so a codec / jitter-buffer / PLC regression fails the build.
+  codec, the mesh channel (loss / jitter / multi-hop), a jitter buffer, adaptive-bitrate packet
+  protection, and packet-loss concealment, then graded with STOI, PESQ, a ViSQOL-style NSIM proxy,
+  and neural MOS (DNSMOS/PLCMOS) — all offline. Strong per-condition, per-bitrate thresholds are
+  enforced as a committed gate, so a codec / jitter-buffer / PLC / adaptive-bitrate regression
+  fails the build.
 - **Cross-language parity** is enforced by shared vectors in [`tests`](tests): the same
   envelope/frame/crypto outputs are reproduced byte-for-byte by both Python and TypeScript
   (deterministic Ed25519 means even signatures match), and a session encrypted by the Python

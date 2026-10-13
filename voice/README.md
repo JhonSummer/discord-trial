@@ -10,7 +10,7 @@ the mesh has had its way with it?"*.
 clean speech → encode (low-bitrate parametric codec @ 3.2/6/9.2 kbps)
              → mesh channel (packet loss · jitter · multi-hop · reorder)
              → jitter buffer (fixed baseline | adaptive)
-             → [optional 1-frame FEC]
+             → [optional in-band FEC — fixed one-frame or adaptive-depth]
              → packet-loss concealment (silence baseline | parametric)
              → phase-continuous synthesizer → recovered audio
              → STOI · PESQ · ViSQOL · DNSMOS · PLCMOS
@@ -96,6 +96,29 @@ The optimized path recovers intelligibility from the 0.3–0.6 range back to 0.7
 neural MOS by ~1 point, recovering to **near the codec's clean ceiling** — i.e. the mesh path
 stops being the bottleneck.
 
+### Adaptive bitrate: protection only where the link needs it
+
+`optimized+abr` keeps the adaptive jitter buffer and parametric PLC but replaces the fixed one-frame
+redundancy with a **causal controller** ([`voiceq/abr.py`](voiceq/abr.py)) that tracks the loss the
+receiver reports and sets the in-band redundancy *depth* per packet — none on a clean link, one-deep
+for isolated drops, two-deep under bursts (reacting only to feedback-lagged loss, never peeking
+ahead). At **9.2 kbps** (3 clips × 3 seeds):
+
+| condition | config | kbps | STOI (vs coded) | DNSMOS | PLCMOS |
+| --- | --- | --- | --- | --- | --- |
+| clean | optimized+fec | 12.4 | 1.00 | 2.58 | 2.36 |
+| clean | **optimized+abr** | **9.2** | 1.00 | 2.58 | 2.34 |
+| heavy (25%) | optimized+fec | 12.4 | 0.82 | 2.31 | 1.78 |
+| heavy (25%) | **optimized+abr** | 15.1 | **0.85** | **2.36** | **1.88** |
+| burst (26%) | optimized+fec | 12.4 | 0.76 | 2.31 | 1.73 |
+| burst (26%) | **optimized+abr** | 14.9 | **0.77** | 2.31 | 1.74 |
+
+On a clean link ABR carries **no** redundancy (9.2 vs always-on FEC's 12.4 kbps) at identical
+quality; under bursts it goes two-deep and **beats** fixed one-frame FEC — heavy robust-STOI rises
+to 0.85 (vs 0.82) and PLCMOS to 1.88 (vs 1.78) — recovering 2-in-a-row losses that one-frame FEC
+drops. Averaged over a realistic mostly-clean mix it is cheaper than always-on FEC while being
+strictly more robust on the cases that matter.
+
 ## The gate (hard requirement)
 
 [`tests/test_voice_quality_gate.py`](tests/test_voice_quality_gate.py) enforces
@@ -104,6 +127,11 @@ ViSQOL / DNSMOS / PLCMOS floors per condition and **at every bitrate**, and must
 by a margin (so a PLC/jitter-buffer regression fails the build). Thresholds are set below the
 measured optimized scores (with margin) and above the baseline. The neural backends are
 **required**, not optional — a missing backend fails the gate rather than skipping it.
+
+The **adaptive-bitrate** path (`optimized+abr`) has its own committed bars: it must clear the same
+per-condition quality floors, add **no** redundancy overhead on a clean link (so it undercuts
+always-on FEC at equal quality), and **beat** fixed one-frame FEC on bursty loss — so an ABR
+regression that either wastes bandwidth or drops burst recovery fails the build too.
 
 ## Layout
 
@@ -116,7 +144,8 @@ measured optimized scores (with margin) and above the baseline. The neural backe
 | `voiceq/channel.py` | mesh loss (Gilbert-Elliott) / jitter / multi-hop → delivery trace |
 | `voiceq/jitterbuffer.py` | fixed vs adaptive playout buffers |
 | `voiceq/plc.py` | silence vs parametric packet-loss concealment |
-| `voiceq/pipeline.py` | end-to-end path + baseline/optimized presets |
+| `voiceq/abr.py` | adaptive-bitrate controller: loss-tracking in-band redundancy depth |
+| `voiceq/pipeline.py` | end-to-end path + baseline/optimized/abr presets |
 | `voiceq/metrics/` | STOI, PESQ, DNSMOS, PLCMOS, ViSQOL-proxy adapters |
 | `voiceq/bench.py` | benchmark runner → `results/benchmark.{md,csv}` |
 | `voiceq/thresholds.py` | committed quality targets |
