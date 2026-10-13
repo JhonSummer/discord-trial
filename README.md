@@ -65,9 +65,10 @@ And orthogonally: **app code** (`apps/mobile`, `packages/*`) is the product; the
 - The crypto here is a vetted-primitive **reference**; production should use audited stacks
   (libsignal / OpenMLS / platform secure enclaves). See [`packages/crypto`](packages/crypto).
 
-## About `Discord.dmg`
+## Origins
 
-The `Discord.dmg` in this repo is only the Electron **client** installer (fetched via
-`./get-discord.sh`). It contains none of Discord's backend/system design and is **not** used
-as a source — Discord's *design ideas* are drawn from their public engineering write-ups. The
-file is left untouched.
+This repo began as a Discord reverse-engineering experiment (RE/REA on the macOS `.dmg`) — which
+turned out useless, since the shipped Electron client holds none of Discord's backend/system
+design. So the `.dmg` was dropped (it's `.gitignore`d now) and the repo pivoted to building the
+messenger that experiment was actually after. Discord's *design ideas* here come only from its
+public engineering write-ups, never from its binary.
