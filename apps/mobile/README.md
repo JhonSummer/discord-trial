@@ -28,18 +28,38 @@ transport; see the root README's demarcation table.
 
 ## Status
 
-Scaffold. The transport/crypto/protocol packages are implemented and emulator-verified first;
-the app consumes them behind a `Transport` interface so the **same** mesh code that passes the
-Bumble emulation tests runs on the phone. On-device BLE and the Lyra voice path are the parts
-that ultimately require hardware (see `packages/voice` and the root README caveats).
+Runnable Expo app with a **headless-tested core**. The `Conversation` view-model turns typed text
+into signed (Ed25519), end-to-end-encrypted (ChaCha20-Poly1305) envelopes on the shared
+`@messenger/protocol` wire format and carries them over a pluggable `Transport` — so the **same**
+code that passes the Bumble emulation tests is what runs on the phone. The core and its transport
+abstraction are unit-tested with `jest` in CI (`__tests__/conversation.test.ts`); the React UI is
+a thin layer over that core.
 
-## Planned layout
+What still needs hardware / external tools, and is **not** faked here: running the UI needs the
+**iOS Simulator / Android emulator** (external, see above) or a real device; on-device BLE needs a
+native module (e.g. `react-native-ble-plx`); the room key is currently a static-DH placeholder
+until the Double Ratchet / MLS TypeScript port lands in `packages/crypto`; and the Lyra voice path
+(`packages/voice`) is CPU/battery-bound and only settleable by on-device profiling.
+
+## Layout
 
 ```
-app/            Expo Router screens
+App.tsx          root component
+index.ts         Expo entry (registerRootComponent)
 src/
-  transport/    Transport interface + BLE (native) and relay adapters
-  state/        view-models over the protocol DAG/CRDTs
-  ui/           components, theme
-__tests__/      jest: view-model + protocol-wiring tests (headless)
+  core/          Conversation view-model (headless, jest-tested)
+  transport/     Transport interface + in-process LoopbackBus (dev/tests)
+  ui/            React Native screens + the useConversation hook
+__tests__/       jest: core + transport tests (headless, run from repo root)
 ```
+
+## Run
+
+```bash
+npm install                 # from the repo root (workspaces); installs Expo + the shared packages
+npm --workspace @messenger/mobile run typecheck   # typecheck the RN/UI layer
+cd apps/mobile && npx expo start                   # then press i (iOS sim) / a (Android emulator)
+```
+
+The headless core tests run from the repo root with `npm test` (jest), alongside the rest of the
+TypeScript suite.

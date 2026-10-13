@@ -5,7 +5,8 @@
   "description": "Hybrid internet + Bluetooth messenger — shared TypeScript packages and phone app",
   "workspaces": [
     "packages/protocol/ts",
-    "packages/crypto/ts"
+    "packages/crypto/ts",
+    "apps/mobile"
   ],
   "scripts": {
     "test": "jest",

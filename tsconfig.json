@@ -9,7 +9,8 @@
     "packages/crypto/ts/src",
     "packages/protocol/ts/__tests__",
     "packages/crypto/ts/__tests__",
-    "apps/mobile/src",
+    "apps/mobile/src/core",
+    "apps/mobile/src/transport",
     "apps/mobile/__tests__",
     "tests"
   ]

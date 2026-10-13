@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Mesh Messenger",
+    "slug": "mesh-messenger",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.meshmessenger.app"
+    },
+    "android": {
+      "package": "dev.meshmessenger.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
