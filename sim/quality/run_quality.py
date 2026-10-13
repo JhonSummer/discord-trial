@@ -15,7 +15,9 @@ import csv
 import json
 import math
 import os
+import platform
 import sys
+from importlib import metadata
 from typing import Dict, List, Mapping
 
 from meshvoice.report import text_table
@@ -221,6 +223,33 @@ def render_summary(rows: List[Mapping], thresholds: Mapping, failures: List[str]
     return "\n".join(lines)
 
 
+def _package_version(name: str) -> str:
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return "not-installed"
+
+
+def write_provenance(path: str) -> None:
+    from .lyra_codec import LYRA_COMMIT
+    from .score import DNSMOS_SHA256
+    from .speech import FIXTURE_SHA256
+
+    payload = {
+        "lyra_commit": LYRA_COMMIT,
+        "speech_fixture_sha256": FIXTURE_SHA256,
+        "dnsmos_p835_sha256": DNSMOS_SHA256,
+        "python": platform.python_version(),
+        "packages": {
+            name: _package_version(name)
+            for name in ("numpy", "scipy", "soundfile", "pystoi", "onnxruntime", "visqol-python")
+        },
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2)
+        fh.write("\n")
+
+
 def finalize(rows: List[Mapping], thresholds: Mapping, results_dir: str) -> List[str]:
     published = [publish(row, thresholds) for row in rows]
     os.makedirs(results_dir, exist_ok=True)
@@ -235,6 +264,7 @@ def finalize(rows: List[Mapping], thresholds: Mapping, results_dir: str) -> List
     with open(os.path.join(results_dir, "scores.json"), "w", encoding="utf-8") as fh:
         json.dump(published, fh, indent=2)
         fh.write("\n")
+    write_provenance(os.path.join(results_dir, "run.json"))
     print(text_table(published, [
         "condition", "bitrate", "loss_fraction", "visqol_mos", "dnsmos_ovrl", "stoi", "passes_gate",
     ]))

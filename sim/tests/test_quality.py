@@ -1,6 +1,7 @@
 """Mesh-frame loss masks and the quality gate. Audio metrics run in run_quality.py."""
 
 import hashlib
+import json
 import os
 
 import pytest
@@ -8,12 +9,14 @@ import pytest
 from quality.channel import (
     BITRATES,
     CONDITIONS,
+    all_masks,
     condition_by_name,
     loss_pattern_flag,
     mask_from_pattern,
     simulate,
 )
-from quality.gate import evaluate, passes
+from quality.gate import evaluate, load_thresholds, passes
+from quality.run_quality import read_csv
 from quality.speech import FIXTURE_SHA256, N_FRAMES, N_SAMPLES, fixture_path, load_pcm16
 
 
@@ -111,3 +114,19 @@ def test_delay_alignment_reports_positive_lag_when_degraded_is_late():
 
     early = np.concatenate([reference[delay:], np.zeros(delay)])
     assert align_delay(reference, early, max_lag=640) == -delay
+
+
+def test_committed_masks_match_the_simulator():
+    path = os.path.join(os.path.dirname(__file__), "..", "quality", "results", "masks.json")
+    with open(path, encoding="utf-8") as fh:
+        committed = json.load(fh)
+    assert committed == all_masks()
+
+
+def test_committed_quality_table_meets_gate():
+    results = os.path.join(os.path.dirname(__file__), "..", "quality", "results", "quality.csv")
+    rows = read_csv(results)
+    thresholds = load_thresholds()
+    assert thresholds["calibrated"] is True
+    assert evaluate(rows, thresholds) == []
+    assert all(row["passes_gate"] == "yes" for row in rows)
