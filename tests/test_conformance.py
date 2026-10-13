@@ -12,9 +12,9 @@ import os
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
-from messenger.crypto.identity import IdentityKeyPair, PublicIdentity, safety_number
-from messenger.crypto.primitives import aead_decrypt, aead_encrypt, hkdf, sha256
-from messenger.crypto.ratchet import DoubleRatchet, Header, _kdf_ck, _kdf_rk
+from cryptocore.identity import IdentityKeyPair, PublicIdentity, safety_number
+from cryptocore.primitives import aead_decrypt, aead_encrypt, hkdf, sha256
+from cryptocore.ratchet import DoubleRatchet, Header, _kdf_ck, _kdf_rk
 from messenger.protocol import Envelope, Frame, Snowflake
 
 _VECTORS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vectors", "conformance.json")

@@ -1,0 +1,5 @@
+# Phase 1 crypto core — runtime + test dependencies.
+# Both are mainstream open-source packages installed as normal dependencies; no third-party
+# protocol code is vendored into this repository and nothing here touches the network.
+cryptography>=42.0
+pytest>=8.0

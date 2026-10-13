@@ -65,6 +65,10 @@ python3 run_sweep.py          # writes results/ and prints the tables
   model beyond the residual error rate; no mobility.
 - **No battery/CPU model** — Lyra decode cost under many simultaneous calls is a known open
   risk and must be measured on hardware, not inferred here.
+- This simulator models *timing/capacity*, not audio quality — but `SimParams(trace=True)` exports a
+  per-call packet-delivery trace that the [`voice/`](../voice) harness replays through the codec +
+  jitter buffer + PLC to score how a call under these exact conditions actually *sounds*
+  (`voice/tests/test_sim_bridge.py`).
 - Default encode/decode delays and connection interval are nominal; the on-device bench
   recalibrates them and the model re-runs unchanged.
 

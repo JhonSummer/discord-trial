@@ -1,4 +1,4 @@
-from messenger.crypto.identity import IdentityKeyPair
+from cryptocore.identity import IdentityKeyPair
 from messenger.protocol import EventDAG, Snowflake, make_envelope
 
 

@@ -16,12 +16,14 @@ The cryptographic core, shared in spirit by the app and the reference tooling.
 ## Layout
 
 ```
-python/     reference implementation (built on PyCA `cryptography`), the spec oracle + tests
 ts/         on-device implementation (built on @noble/*), used by apps/mobile + jest tests
 ```
 
-Both sides are pinned to the **same test vectors** in `../../tests` so the phone and the
-reference agree byte-for-byte on the wire.
+The Python **reference implementation** (the spec oracle, built on PyCA `cryptography`) lives
+at the repository's top-level [`crypto/`](../../crypto) directory (package `cryptocore`), and
+additionally covers the untrusted relay and RFC known-answer tests. Both sides are pinned to
+the **same cross-language vectors** in `../../tests` so the phone and the reference agree
+byte-for-byte on the wire.
 
 ## Status & honesty
 

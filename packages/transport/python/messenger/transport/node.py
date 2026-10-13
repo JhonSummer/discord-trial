@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from messenger.crypto.identity import IdentityKeyPair
+from cryptocore.identity import IdentityKeyPair
 from messenger.protocol.dag import EventDAG
 from messenger.protocol.envelope import Envelope, Snowflake, make_envelope
 from messenger.protocol.frame import DEFAULT_TTL

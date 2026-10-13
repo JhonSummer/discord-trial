@@ -11,7 +11,7 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass
 
-from messenger.crypto.primitives import sha256
+from cryptocore.primitives import sha256
 
 from .wire import pack, unpack
 

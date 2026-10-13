@@ -13,8 +13,8 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from harness import EmulatedMesh
-from messenger.crypto import DoubleRatchet, IdentityKeyPair, run_handshake
-from messenger.crypto.ratchet import Header
+from cryptocore import DoubleRatchet, IdentityKeyPair, run_handshake
+from cryptocore.ratchet import Header
 from messenger.protocol import Envelope, Snowflake, make_envelope
 
 

@@ -12,8 +12,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
-from messenger.crypto.identity import IdentityKeyPair, PublicIdentity
-from messenger.crypto.primitives import sha256
+from cryptocore.identity import IdentityKeyPair, PublicIdentity
+from cryptocore.primitives import sha256
 
 from .wire import pack as _pack, unpack as _unpack
 

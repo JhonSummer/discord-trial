@@ -1,11 +1,17 @@
-# Root config for the Python side of the monorepo (reference impls + emulator verifier).
-# The on-device app and its TypeScript packages are configured under apps/ and packages/*/ts.
+# Root config for the Python side of the hybrid-messenger monorepo (reference
+# implementations + the BLE-emulator verifier). The on-device app and its TypeScript
+# packages are configured under apps/ and packages/*/ts.
 #
-# The three package source roots expose one implicit-namespace package, `messenger`
-# (PEP 420 — no messenger/__init__.py anywhere), so cross-package imports read naturally:
-#   messenger.crypto.*   (packages/crypto/python)
-#   messenger.protocol.* (packages/protocol/python)
-#   messenger.transport.* (packages/transport/python)
+# Layout:
+#   crypto/cryptocore/            — the Phase 1 crypto core (identity, Noise, ratchet, MLS, relay)
+#   packages/protocol/python/     — messenger.protocol.* (envelope / frame / dag / crdt / wire)
+#   packages/transport/python/    — messenger.transport.* (mesh router, BLE fragmentation)
+#   emulation/                    — the Bumble-backed virtual-BLE verifier harness
+#   sim/                          — the Phase 0 Lyra-over-BLE-mesh simulator
+#   voice/                        — voiceq.*: the Lyra voice-quality harness + committed gate
+#
+# protocol and transport are a single PEP 420 implicit-namespace package, `messenger`
+# (no messenger/__init__.py anywhere), so cross-package imports read naturally.
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -13,16 +19,21 @@ minversion = "7.0"
 # (e.g. test_envelope.py) coexist across packages without import collisions.
 addopts = "-q --import-mode=importlib"
 pythonpath = [
-    "packages/crypto/python",
+    "crypto",
     "packages/protocol/python",
     "packages/transport/python",
     "emulation",
     "sim",
+    "voice",
 ]
 testpaths = [
-    "packages/crypto/tests",
+    "crypto/tests",
     "packages/protocol/tests",
     "packages/transport/tests",
     "tests",
     "sim/tests",
+    "voice/tests",
+]
+markers = [
+    "voicegate: the committed Lyra voice-quality gate (STOI/PESQ/DNSMOS/PLCMOS thresholds)",
 ]

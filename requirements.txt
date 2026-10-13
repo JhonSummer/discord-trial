@@ -1,13 +1,26 @@
-# Python dependencies for the reference implementations + the BLE emulation verifier.
-# The phone app and its TypeScript packages have their own manifests under apps/ and packages/*/ts.
+# Python dependencies for the reference implementations + the BLE-emulator verifier.
+# The phone app and its TypeScript packages have their own manifests under apps/ and
+# packages/*/ts.
 #
-# All pinned, open-source, installed as normal dependencies. No credentials, and the test suite
-# needs no network access.
+# All pinned, open-source, installed as normal dependencies. No credentials, and the test
+# suite needs no network access: every model weight used by the voice-quality gate ships
+# inside its pip package (verified by running the gate behind a dead proxy).
 
-cryptography==50.0.2   # vetted primitives for packages/crypto (Ed25519, X25519, ChaCha20Poly1305, HKDF)
+cryptography==50.0.2   # vetted primitives for crypto/ (Ed25519, X25519, ChaCha20-Poly1305, HKDF)
 bumble==0.0.235        # Google's open-source BLE stack: the emulated controller + link layer
 pytest==9.1.1          # test runner
 
-# numpy is optional and only speeds up parts of sim/ (the radio-physics simulator); it is not
-# required to run the suite.
-# numpy==1.26.4
+# --- voice/ : the Lyra voice-quality harness + its committed quality gate ------------------
+# numpy/scipy drive the reference synth, the parametric codec, the mesh channel and the PLC.
+numpy==2.5.4
+scipy==1.18.1
+soundfile==0.14.0      # libsndfile bindings for WAV fixtures and debug dumps
+
+# Objective + neural voice-quality metrics. pystoi is pure Python; pesq is a C extension that
+# needs the CPython dev headers at build time (apt: python3.12-dev). speechmos bundles the
+# DNSMOS (ITU-T P.835) and PLCMOS ONNX weights inside the wheel, so both run fully offline.
+pystoi==0.4.1          # STOI / ESTOI intelligibility
+pesq==0.0.4            # ITU-T P.862.2 wideband PESQ (MOS-LQO)
+speechmos==0.0.1.1     # DNSMOS P.835 + PLCMOS neural MOS predictors (weights vendored in-wheel)
+onnxruntime==1.31.0    # CPU inference backend for the speechmos ONNX models
+librosa==1.0.0         # resampling/feature helpers required by speechmos

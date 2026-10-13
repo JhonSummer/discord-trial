@@ -12,15 +12,15 @@ import os
 import sys
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _p in ("packages/crypto/python", "packages/protocol/python"):
+for _p in ("crypto", "packages/protocol/python"):
     sys.path.insert(0, os.path.join(_ROOT, _p))
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
-from messenger.crypto.identity import IdentityKeyPair, safety_number
-from messenger.crypto.primitives import aead_encrypt, hkdf, sha256
-from messenger.crypto.ratchet import DoubleRatchet, _dh, _kdf_ck, _kdf_rk, _raw
+from cryptocore.identity import IdentityKeyPair, safety_number
+from cryptocore.primitives import aead_encrypt, hkdf, sha256
+from cryptocore.ratchet import DoubleRatchet, _dh, _kdf_ck, _kdf_rk, _raw
 from messenger.protocol import EPOCH_MS, Envelope, Frame, Snowflake
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "conformance.json")
@@ -83,7 +83,7 @@ def ratchet_vectors() -> dict:
 
     # Sanity-check that a fresh Bob decrypts the captured session before writing it out.
     bob = DoubleRatchet.init_bob(root_key, X25519PrivateKey.from_private_bytes(bob_ratchet_priv))
-    from messenger.crypto.ratchet import Header
+    from cryptocore.ratchet import Header
     for m in messages:
         assert bob.decrypt(Header(bytes.fromhex(m["dh_hex"]), m["pn"], m["n"]),
                            bytes.fromhex(m["body_hex"]), ad) == bytes.fromhex(m["plaintext_hex"])

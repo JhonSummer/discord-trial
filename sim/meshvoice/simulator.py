@@ -61,6 +61,22 @@ class SimParams:
     relay_processing_ms: float = 0.0
     jitter_buffer_ms: float = 60.0
     seed: int = 0
+    trace: bool = False  # record a per-packet delivery trace per call (for the voice harness)
+
+
+@dataclass
+class CallTrace:
+    """Per-packet delivery record for one call, ordered by packet index.
+
+    This is the bridge to the voice-quality harness: ``voiceq.channel.from_sim_delays`` turns
+    these arrays into a ``DeliveryTrace`` so real speech can be scored over the *exact* loss/delay
+    pattern the simulator produced for a call (``send_s[k]`` nominal capture time, ``delay_s[k]``
+    network delay — NaN if the packet never arrived — and ``lost[k]`` true for drop- or late-loss).
+    """
+
+    send_s: List[float]
+    delay_s: List[float]
+    lost: List[bool]
 
 
 @dataclass
@@ -91,6 +107,7 @@ class SimResult:
     generated: int
     link_utilization: Dict[Tuple[int, int], float]
     link_max_queue_ms: Dict[Tuple[int, int], float]
+    packet_trace: Optional[Dict[int, CallTrace]] = None  # call_id -> trace, only when SimParams.trace
 
     @property
     def total_lost(self) -> int:
@@ -122,6 +139,7 @@ class Simulator:
         heap: List[Tuple[float, int, int, int, int, float]] = []
         seq = 0
         generated = 0
+        gen_per_call: Dict[int, int] = {}
         for ci, call in enumerate(self.calls):
             interval = call.packet_interval_s
             # first full packet is captured over [start, start+interval], ready after encode
@@ -134,7 +152,10 @@ class Simulator:
                 generated += 1
                 k += 1
                 capture = call.start_s + call.phase_s + k * interval
+            gen_per_call[ci] = k
 
+        # Per-packet outcome keyed by (call_index, packet_index), only when tracing is requested.
+        traced: Optional[Dict[Tuple[int, int], Tuple[str, float]]] = {} if p.trace else None
         delivered_raw: List[_PacketRecord] = []
         lost_random = 0
         lost_congestion = 0
@@ -158,6 +179,8 @@ class Simulator:
             if queue_wait > lp.max_queue_delay_ms / 1000.0:
                 link.dropped_congestion += 1
                 lost_congestion += 1
+                if traced is not None:
+                    traced[(ci, k)] = ("congestion", float("nan"))
                 continue
 
             service = call.packet_bits / lp.capacity_bps
@@ -172,6 +195,8 @@ class Simulator:
 
             if rng.random() < lp.per:
                 lost_random += 1
+                if traced is not None:
+                    traced[(ci, k)] = ("random", float("nan"))
                 continue
 
             is_last = hop + 1 == len(call.path) - 1
@@ -179,15 +204,17 @@ class Simulator:
                 delivered_raw.append(_PacketRecord(
                     call_id=call.call_id, delivered=True,
                     network_delay_s=depart - send_ready, hops=len(call.path) - 1))
+                if traced is not None:
+                    traced[(ci, k)] = ("delivered", depart - send_ready)
             else:
                 seq += 1
                 heapq.heappush(heap, (depart + relay_s, seq, ci, k, hop + 1, send_ready))
 
         return self._finalize(delivered_raw, lost_random, lost_congestion, generated,
-                              encode_s, decode_s)
+                              encode_s, decode_s, traced, gen_per_call)
 
     def _finalize(self, delivered_raw, lost_random, lost_congestion, generated,
-                  encode_s, decode_s) -> SimResult:
+                  encode_s, decode_s, traced=None, gen_per_call=None) -> SimResult:
         p = self.params
         jb_s = p.jitter_buffer_ms / 1000.0
 
@@ -214,10 +241,30 @@ class Simulator:
 
         util = {k: v.utilization(p.duration_s) for k, v in self.graph.links.items()}
         maxq = {k: v.max_queue_delay * 1000.0 for k, v in self.graph.links.items()}
+
+        # The trace carries *raw network* delivery (random/congestion drops + the real network
+        # delay of every packet that arrived). Late-loss is deliberately left out so the voice
+        # harness's own jitter buffer decides it from the delays — the same split as run_pipeline.
+        packet_trace: Optional[Dict[int, CallTrace]] = None
+        if traced is not None:
+            packet_trace = {}
+            for ci, call in enumerate(self.calls):
+                interval = call.packet_interval_s
+                n_k = (gen_per_call or {}).get(ci, 0)
+                send_s, delay_s, lost = [], [], []
+                for k in range(n_k):
+                    status, d = traced.get((ci, k), ("random", float("nan")))
+                    is_lost = status != "delivered"
+                    send_s.append(k * interval)
+                    delay_s.append(d)
+                    lost.append(is_lost)
+                packet_trace[call.call_id] = CallTrace(send_s=send_s, delay_s=delay_s, lost=lost)
+
         return SimResult(
             params=p, calls=self.calls, delivered=delivered,
             lost_random=lost_random, lost_congestion=lost_congestion, lost_late=lost_late,
-            generated=generated, link_utilization=util, link_max_queue_ms=maxq)
+            generated=generated, link_utilization=util, link_max_queue_ms=maxq,
+            packet_trace=packet_trace)
 
     def _call_by_id(self, call_id: int) -> Call:
         for c in self.calls:
